@@ -9,11 +9,14 @@ fn priority_q_base() {
 #[test]
 fn experiment() {
     let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-    pq.put(7.4, String::from("Air Bud"));
-    pq.put(8.3, String::from("Luke"));
-    pq.put(1.1, String::from("Top Gun"));
-    assert_eq!("Top Gun", pq.pop().unwrap().1);
-    assert_eq!("Air Bud", pq.pop().unwrap().1);
+    pq.put(7.4, String::from("Iverson"));
+    pq.put(8.3, String::from("Dr.J"));
+    pq.put(1.1, String::from("Mutombo"));
+    pq.put(4.3, String::from("Embiid"));
+
+    for (s, v) in pq.into_iter() {
+        println!("Score: {} | Value: {}", s, v);
+    }
 }
 
 // #[test]
