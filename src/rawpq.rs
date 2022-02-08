@@ -7,6 +7,7 @@ use std::alloc;
 const INITIAL_CAPACITY: usize = 10;
 const MAX_ZST_CAPACITY: usize = 1 << (usize::BITS - 1);
 
+#[derive(Debug)]
 pub struct RawPQ<S, T> {
     pub ptr: ptr::NonNull<(S, T)>,
     pub cap: usize,

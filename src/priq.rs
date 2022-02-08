@@ -1,14 +1,106 @@
+//! Array implementation of the min/max heap.
+//!
+//! `PriorityQueue` is build on top of raw vector for efficient performance.
+//!
+//! There are two major reasons what makes this `PriorityQueue` different from
+//! other binary heap implementations currently available:
+//!
+//! 1 - Allows data ordering to scores with `PartialOrd`.
+//!     - Every other min-max heap requires total ordering of scores (e.g.
+//!     should implement `Ord` trait). This can be an issue, for example,
+//!     when you want to order items based on a float scores, which doesn't
+//!     implement `Ord` trait.
+//!
+//!     - You can read what is total order here: https://bit.ly/3GCWvYL
+//!     And about Rust's implementation or `Ord`, `PartialOrd` and what's
+//!     the different here: https://bit.ly/3J7NwQI
+//!
+//! 2 - Separation of score and item you wish to store.
+//!     - This frees enforcement for associated items to implement any ordering.
+//!     - Makes easier to evaluate items' order.
+//!
+//! 3 - Equal scoring items are stored at first available free space.
+//!     - This gives performance boost for large number of entries.
+//!
+//! 4 - Easy to use!
+//!
+//! You can read more about this crate here: https://www.bexxmodd.com
+
 use std::mem;
 use std::ptr;
-use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
 use crate::rawpq::RawPQ;
 
+/// A Min-Max Heap with separate arguments for `score` and associated `item`.
+///
+/// `Default` implementation is a Min-Heap where top node is the lowest scoring:
+///
+///                             10
+///                           /    \
+///                         58      70
+///                        /  \    /  \
+///                      80   92  97   99
+///            The value of Parent Node is small than Child Node.
+
+/// Every single parent node, including the top (root) node, is less than or 
+/// equal to the value of its children nodes. And left child is always less 
+/// than or equal to right child.
+///
+/// `PriorityQueue` allows duplicate score/item values. When you [`push`] the 
+/// item with the similar score that's already in the queue new entry will be 
+/// stored at the first empty location in memory. This gives incremental 
+/// performance boost (instead of resolving by using associated item as a 
+/// secondary tool to priority evaluation). Also, this form of implementation 
+/// doesn't enforce for the item `T` to have any implemented ordering.
+/// This guarantees that the top node will always be of minimum value.
+///
+/// You can initilize an empty `PriorityQueue` and later add items:
+///
+/// ```
+/// use priq::PriorityQueue;
+///
+/// let pq = PriorityQueue::new();
+/// ```
+///
+/// Or you can `heapify` from an array:
+///
+/// ```
+/// use priq::PriorityQueue;
+///
+/// let pq = PriorityQueue::from([(3, "Odo"), (1, "Nergi"), (4, "Vaal")]);
+/// ```
+/// 
+/// The standard usage of this data structure is to through [`put`] to add to 
+/// the queue and [`pop`] to remove the top item, and [`peek`] to check what's 
+/// the top item in the queue. Stored structure of the items is a balanced tree 
+/// realized using an array with contiguous memory location. This allows to 
+/// maintain proper parent child relationship between [`put`]-ed items.
+///
+/// [`put`]: PriorityQueue::put
+/// [`peek`]: PriorityQueue::peek
+/// [`pop`]: PriorityQueue::pop
+///
+
+/// Runtime complexity with Big-O Notation:
+/// 
+///     | method    | Time Complexity |
+///     |-----------|-----------------|
+///     | [`put`]   | O(log(n))       |
+///     |-----------|-----------------|
+///     | [`pop`]   | O(long(n))      |
+///     |-----------|-----------------|
+///     | [`peek`]  | O(1)            |
+///
+/// You can also iterate over using for loop but the returned slice will not 
+/// proper order as heap is re-balanced after each insertion and deletion. If
+/// you want to grab items in a proper priority call [`pop`] in a loop until 
+/// it returns `None`.
+#[derive(Debug)]
 pub struct PriorityQueue<S, T> 
 where
-    S: PartialOrd + Display,
-    T: Clone + Display
+    S: PartialOrd,
+    T: Clone
 {
     data: RawPQ<S, T>,
     len: usize,
@@ -17,9 +109,20 @@ where
 
 impl<S, T> PriorityQueue<S, T>
 where
-    S: PartialOrd + Display,
-    T: Clone + Display
+    S: PartialOrd,
+    T: Clone
 {
+    /// Create an empty `PriorityQueue`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let pq: PriorityQueue<f32, String> = PriorityQueue::new();
+    /// ```
+    #[inline]
+    #[must_use]
     pub fn new() -> Self {
         PriorityQueue {
             data: RawPQ::new(),
@@ -27,12 +130,77 @@ where
         }
     }
 
+    /// Create `PriorityQueue` from a slice
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let pq = PriorityQueue::from([(-1, 1), (-3, 3), (-2, 2)]);
+    /// ```
+    pub fn from(slice: &[(S, T)]) -> Self {
+        todo!()
+    }
+
+    /// If you expect that you'll be putting at least `n` number of items in 
+    /// `PriorityQueue` you can create it with space of at least elements equal
+    /// to `cap`. This can boost the performance for the large number of sets, 
+    /// because it will eliminate the need to grow underlying array more often.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let pq: PriorityQueue<usize, usize> = PriorityQueue::with_capacity(100);
+    /// ```
+    pub fn with_capacity(cap: usize) -> Self {
+        todo!()
+    }
+
+    /// Returns the number of elements in the `PriorityQueue`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    /// assert_eq!(0, pq.len());
+    ///
+    /// pq.put(1, 99);
+    /// assert_eq!(1, pq.len());
+    /// ```
     pub fn len(&self) -> usize {
         self.len
     }
 
+    /// Returns `true` is there are no elements in `PriorityQueue`
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+
+    /// let pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    /// assert!(pq.is_empty());
+    ///
+    /// pq.put(1, 99);
+    /// assert!(!pq.is_empty());
+    /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+
+    pub fn put(&mut self, score: S, item: T) {
+        if self.cap() == self.len { self.data.grow(); }
+        self.len += 1;
+        let _entry = (score, item);
+        unsafe {
+            ptr::write(self.ptr().add(self.len - 1), _entry);
+        }
+        self.heapify_up(self.len - 1);
     }
 
     pub fn pop(&mut self) -> Option<(S, T)> {
@@ -49,16 +217,6 @@ where
         } else { None }
     }
 
-    pub fn put(&mut self, score: S, item: T) {
-        if self.cap() == self.len { self.data.grow(); }
-        self.len += 1;
-        let _entry = (score, item);
-        unsafe {
-            ptr::write(self.ptr().add(self.len - 1), _entry);
-        }
-        self.heapify_up(self.len - 1);
-    }
-
     pub fn peek(&self) -> Option<&(S, T)> {
         if !self.is_empty() {
             unsafe {
@@ -67,34 +225,50 @@ where
         } else { None }
     }
 
+    /// Provides the raw pointer to the contiguous block of memory of data
+    #[inline]
     fn ptr(&self) -> *mut (S, T) {
         self.data.ptr.as_ptr()
     }
 
+    #[inline]
+    /// Provides what's the current capacity of a underlying array
     fn cap(&self) -> usize {
         self.data.cap
     }
 
+    /// Generates the index of a left child (if any) of a item on a given index
+    #[inline]
     fn left_child(&self, index: usize) -> usize {
         2 * index + 1
     }
 
+    /// Generates the index of a right child (if any) of a item on a given index
+    #[inline]
     fn right_child(&self, index: usize) -> usize {
         2 * index + 2
     }
 
+    /// Generates the index of a parent item (if any) of a item on a given index
+    #[inline]
     fn parent(&self, index: usize) -> usize {
         (index - 1) / 2
     }
 
+    /// Checks if given item on provided index has a left child
+    #[inline]
     fn has_left(&self, index: usize) -> bool {
         self.left_child(index) < self.len
     }
 
+    /// Checks if given item on provided index has a right child
+    #[inline]
     fn has_right(&self, index: usize) -> bool {
         self.right_child(index) < self.len
     }
 
+    /// Swaps two values of provided indices in memory
+    #[inline]
     fn swap(&mut self, i: usize, j: usize) {
         unsafe {
             let _a = ptr::read(&self.ptr().add(i));
@@ -103,6 +277,8 @@ where
         }
     }
 
+    /// After item is `pop`-ed this methods helps to balance remaining values
+    /// so the prioritized item remains as a root.
     fn heapify_up(&mut self, index: usize) {
         if index > 0 {
             let parent_ = self.parent(index);
@@ -114,6 +290,8 @@ where
         }
     }
 
+    /// Store inserted value into a proper position to maintain the balanced
+    /// order of parent child relationships and prioritized item as a root.
     fn heapify_down(&mut self, index: usize) {
         let _left = self.left_child(index);
         let _right = self.right_child(index);
@@ -136,8 +314,8 @@ where
 
 impl<S, T> Default for PriorityQueue<S, T>
 where
-    S: PartialOrd + Display,
-    T: Clone + Display
+    S: PartialOrd,
+    T: Clone
 {
     fn default() -> Self {
         PriorityQueue::new()
@@ -146,8 +324,8 @@ where
 
 impl<S, T> Drop for PriorityQueue<S, T>
 where
-    S: PartialOrd + Display,
-    T: Clone + Display
+    S: PartialOrd,
+    T: Clone
 {
     fn drop(&mut self) {
         while self.pop().is_some() {}
@@ -156,8 +334,8 @@ where
 
 impl<S, T> Deref for PriorityQueue<S, T>
 where
-    S: PartialOrd + Display,
-    T: Clone + Display
+    S: PartialOrd,
+    T: Clone
 {
     type Target = [(S, T)];
     fn deref(&self) -> &[(S, T)] {
@@ -167,8 +345,8 @@ where
 
 impl<S, T> DerefMut for PriorityQueue<S, T>
 where
-    S: PartialOrd + Display,
-    T: Copy + Clone + Display
+    S: PartialOrd,
+    T: Copy + Clone
 {
     fn deref_mut(&mut self) -> &mut [(S, T)] {
         unsafe { std::slice::from_raw_parts_mut(self.ptr(), self.len) }
