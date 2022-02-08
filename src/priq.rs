@@ -1,80 +1,9 @@
-use std::cmp;
 use std::mem;
-use std::fmt::Display;
 use std::ptr;
-use std::marker::PhantomData;
-use std::alloc::{self, Layout};
+use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 
-struct RawPQ<S, T> {
-    ptr: ptr::NonNull<(S, T)>,
-    cap: usize,
-    _marker: PhantomData<(S, T)>,
-}
-
-unsafe impl<T: Send, S: Send> Send for RawPQ<S, T> {}
-unsafe impl<T: Sync, S: Sync> Sync for RawPQ<S, T> {}
-
-impl<S, T> RawPQ<S,T> {
-    fn new() -> Self {
-        let cap = if mem::size_of::<(S, T)>() == 0 { !0 } else { 0 };
-        RawPQ {
-            ptr: ptr::NonNull::dangling(),
-            cap,
-            _marker: PhantomData,
-        }
-    }
-
-    fn grow(&mut self) {
-        assert_ne!(mem::size_of::<(S, T)>(), 0, "Capacity Overflow");
-
-        let (new_cap, new_layout) = match self.cap {
-            0 => (4, Layout::array::<(S, T)>(4).unwrap()),
-            _ => {
-                let new_cap = 3 * self.cap;
-                let new_layout = Layout::array::<(S, T)>(new_cap).unwrap();
-                (new_cap, new_layout)
-            }
-        };
-
-        assert!(
-            new_layout.size() <= isize::MAX as usize,
-            "Allocation too large"
-        );
-
-        let new_ptr = match self.cap {
-            0 => unsafe { alloc::alloc(new_layout) },
-            _ => {
-                let old_layout = Layout::array::<(S, T)>(self.cap).unwrap();
-                let old_ptr = self.ptr.as_ptr() as *mut u8;
-                unsafe {
-                    alloc::realloc(old_ptr, old_layout, new_layout.size())
-                }
-            }
-        };
-
-        self.ptr = match ptr::NonNull::new(new_ptr as *mut (S, T)) {
-            Some(p) => p,
-            None => alloc::handle_alloc_error(new_layout),
-        };
-        self.cap = new_cap;
-    }
-}
-
-impl<S, T> Drop for RawPQ<S, T> {
-    fn drop(&mut self) {
-        let elem_size = mem::size_of::<(S, T)>();
-        if self.cap != 0 && elem_size != 0 {
-            unsafe {
-                alloc::dealloc(
-                    self.ptr.as_ptr() as *mut u8,
-                    Layout::array::<(S, T)>(self.cap).unwrap(),
-                )
-            }
-        }
-    }
-}
-
+use crate::rawpq::RawPQ;
 
 pub struct PriorityQueue<S, T> 
 where
@@ -114,35 +43,10 @@ where
                 ptr::write(self.ptr(), _tmp);
                 self.len -= 1;
                 
-                if self.len > 1 {
-                    self.heapify_down(0);
-                }
+                if self.len > 1 { self.heapify_down(0); }
                 Some(_top)
             }
         } else { None }
-    }
-
-    fn heapify_down(&mut self, index: usize) {
-        let _left = self.left_child(index);
-        let _right = self.right_child(index);
-        let heap_ = ptr::slice_from_raw_parts(self.ptr(), self.len);
-
-        unsafe {
-            let min_ = if self.has_left(index) &&
-                (&*heap_)[_left].0 < (&*heap_)[index].0 {
-                _left
-            } else if self.has_right(index) &&
-                (&*heap_)[_right].0 < (&*heap_)[index].0 {
-                _right
-            } else {
-                index
-            };
-
-            if min_ != index {
-                self.swap(index, min_);
-                self.heapify_down(min_);
-            }
-        }
     }
 
     pub fn put(&mut self, score: S, item: T) {
@@ -210,11 +114,21 @@ where
         }
     }
 
-    pub fn print(&mut self) {
-        let res = ptr::slice_from_raw_parts(self.ptr(), self.len);
+    fn heapify_down(&mut self, index: usize) {
+        let _left = self.left_child(index);
+        let _right = self.right_child(index);
+        let mut min_ = index;
         unsafe {
-            for i in 0..self.len {
-                println!("{}: Value {}", i, (&*res)[i].1);
+            let heap_ = &*ptr::slice_from_raw_parts(self.ptr(), self.len);
+            if self.has_left(index) && heap_[_left].0 < heap_[min_].0 {
+                min_ = _left;
+            }
+            if self.has_right(index) && heap_[_right].0 < heap_[min_].0 {
+                min_ = _right;
+            }
+            if min_ != index {
+                self.swap(index, min_);
+                self.heapify_down(min_);
             }
         }
     }
