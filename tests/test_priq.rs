@@ -1,37 +1,65 @@
 use priq::priq::PriorityQueue;
 
 #[test]
-fn priority_q_base() {
+fn pq_base() {
     let pq: PriorityQueue<f32, String> = PriorityQueue::new();
     assert!(pq.is_empty());
 }
 
 #[test]
-fn experiment() {
-    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-    pq.put(7.4, String::from("Iverson"));
-    pq.put(8.3, String::from("Dr.J"));
-    pq.put(1.1, String::from("Mutombo"));
-    pq.put(4.3, String::from("Embiid"));
-
-    for (s, v) in pq.into_iter() {
-        println!("Score: {} | Value: {}", s, v);
-    }
+fn pq_put_one() {
+    let mut pq: PriorityQueue<usize, String> = PriorityQueue::new();
+    pq.put(24, String::from("Erti"));
+    assert_eq!(1, pq.len());
 }
 
-// #[test]
-// fn priority_q_put() {
-//     let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-//     pq.put(0, 2.0, String::from("Beka"));
-//     pq.put(1, 3.0, String::from("Ana"));
-//     println!("Length: {}", pq.len());
-//     let (score, value) = pq.pop().unwrap();
-//     println!("first {}", value);
-//     // let second = pq.pop().unwrap().1;
-// 
-//     pq.put(0, 1.0, String::from("Nerse"));
-//     assert_eq!("Nerse", pq.peek().unwrap().1);
-// }
+#[test]
+fn pq_put_two() {
+    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
+    pq.put(1.0, String::from("Erti"));
+    pq.put(2.0, String::from("Ori"));
+    assert_eq!(2, pq.len());
+}
+
+#[test]
+fn pq_put_three() {
+    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
+    pq.put(1.0, String::from("Erti"));
+    pq.put(2.0, String::from("Ori"));
+    pq.put(3.0, String::from("Sami"));
+    assert_eq!(3, pq.len());
+}
+
+#[test]
+fn pq_put_four_and_grow() {
+    let mut pq: PriorityQueue<u32, String> = PriorityQueue::new();
+    pq.put(1, String::from("Erti"));
+    pq.put(2, String::from("Ori"));
+    pq.put(3, String::from("Sami"));
+    pq.put(4, String::from("Otxi"));
+    assert_eq!(4, pq.len());
+}
+
+#[test]
+fn pq_peek_sorted_entry() {
+    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
+    pq.put(1.1, String::from("Erti"));
+    pq.put(2.2, String::from("Ori"));
+    pq.put(3.3, String::from("Sami"));
+    assert_eq!(1.1, pq.peek().unwrap().0);
+    assert_eq!("Erti", pq.peek().unwrap().1);
+}
+
+#[test]
+fn pq_peek_unsorted_entry() {
+    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
+    pq.put(2.2, String::from("Ori"));
+    pq.put(3.3, String::from("Sami"));
+    pq.put(0.3, String::from("Me"));
+    pq.put(1.1, String::from("Erti"));
+    assert_eq!(0.3, pq.peek().unwrap().0);
+    assert_eq!("Me", pq.peek().unwrap().1);
+}
 
 // #[test]
 // fn priority_q_pop() {
