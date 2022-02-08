@@ -32,7 +32,7 @@ fn pq_put_three() {
 
 #[test]
 fn pq_put_four_and_grow() {
-    let mut pq: PriorityQueue<u32, String> = PriorityQueue::new();
+    let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
     pq.put(1, String::from("Erti"));
     pq.put(2, String::from("Ori"));
     pq.put(3, String::from("Sami"));
@@ -42,37 +42,44 @@ fn pq_put_four_and_grow() {
 
 #[test]
 fn pq_peek_sorted_entry() {
-    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-    pq.put(1.1, String::from("Erti"));
-    pq.put(2.2, String::from("Ori"));
-    pq.put(3.3, String::from("Sami"));
-    assert_eq!(1.1, pq.peek().unwrap().0);
+    let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    pq.put(1, String::from("Erti"));
+    pq.put(2, String::from("Ori"));
+    pq.put(3, String::from("Sami"));
+    assert_eq!(1, pq.peek().unwrap().0);
     assert_eq!("Erti", pq.peek().unwrap().1);
 }
 
 #[test]
 fn pq_peek_unsorted_entry() {
-    let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-    pq.put(2.2, String::from("Ori"));
-    pq.put(3.3, String::from("Sami"));
-    pq.put(0.3, String::from("Me"));
-    pq.put(1.1, String::from("Erti"));
-    assert_eq!(0.3, pq.peek().unwrap().0);
+    let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    pq.put(2, String::from("Ori"));
+    pq.put(3, String::from("Sami"));
+    pq.put(0, String::from("Me"));
+    pq.put(1, String::from("Erti"));
+    pq.print();
+    assert_eq!(0, pq.peek().unwrap().0);
     assert_eq!("Me", pq.peek().unwrap().1);
 }
 
-// #[test]
-// fn priority_q_pop() {
-//     let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
-//     assert!(pq.pop().is_none());
-// 
-//     pq.push(1.0, String::from("Beka"));
-//     pq.push(1.5, String::from("Nerse"));
-//     pq.push(2.5, String::from("Ana"));
-//     assert_eq!("Beka", pq.pop().unwrap().1);
-//     assert!(pq.is_empty());
-// }
-// 
+#[test]
+fn pq_put_10000_items() {
+    let mut pq: PriorityQueue<u32, u32> = PriorityQueue::new();
+    (0..10000).rev().for_each(|i| { pq.put(i, i * 2); });
+    assert_eq!(10000, pq.len());
+    assert_eq!(0, pq.peek().unwrap().1);
+}
+
+#[test]
+fn pq_pop_base() {
+    let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    assert!(pq.pop().is_none());
+
+    pq.put(1, String::from("Beka"));
+    assert_eq!("Beka", pq.pop().unwrap().1);
+    assert!(pq.is_empty());
+}
+
 // #[test]
 // fn priority_q_peek() {
 //     let mut pq: PriorityQueue<f32, String> = PriorityQueue::new();
