@@ -8,6 +8,12 @@ fn pq_base() {
 }
 
 #[test]
+fn pq_wcapacity() {
+    let pq: PriorityQueue<usize, usize> = PriorityQueue::with_capacity(100);
+    assert!(pq.is_empty());
+}
+
+#[test]
 fn pq_put_one() {
     let mut pq: PriorityQueue<usize, String> = PriorityQueue::new();
     pq.put(24, String::from("Erti"));

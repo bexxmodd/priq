@@ -6,14 +6,13 @@
 //! other binary heap implementations currently available:
 //!
 //! 1 - Allows data ordering to scores with `PartialOrd`.
-//!     - Every other min-max heap requires total ordering of scores (e.g.
-//!     should implement `Ord` trait). This can be an issue, for example,
-//!     when you want to order items based on a float scores, which doesn't
-//!     implement `Ord` trait.
-//!
-//!     - You can read what is total order here: https://bit.ly/3GCWvYL
-//!     And about Rust's implementation or `Ord`, `PartialOrd` and what's
-//!     the different here: https://bit.ly/3J7NwQI
+//!     - Every other min-max heap requires 
+//!     [total ordering](https://bit.ly/3GCWvYL) of scores (e.g. should 
+//!     implement `Ord` trait). This can be an issue, for example, when you 
+//!     want to order items based on a float scores, which doesn't implement
+//!     `Ord` trait.
+//!     - You can read about Rust's implementation or `Ord`, `PartialOrd` and 
+//!     what's the different [here](https://bit.ly/3J7NwQI)
 //!
 //! 2 - Separation of score and item you wish to store.
 //!     - This frees enforcement for associated items to implement any ordering.
@@ -24,7 +23,7 @@
 //!
 //! 4 - Easy to use!
 //!
-//! You can read more about this crate here: https://www.bexxmodd.com
+//! You can read more about this crate on [my blog](https://www.bexxmodd.com)
 
 use std::mem;
 use std::ptr;
@@ -34,20 +33,22 @@ use crate::rawpq::RawPQ;
 
 /// A Min-Max Heap with separate arguments for `score` and associated `item`.
 ///
-/// `Default` implementation is a Min-Heap where top node is the lowest scoring:
+/// `Default` implementation is a Min-Heap where the top node (root) is the 
+/// lowest scoring element:
 ///
-///                             10
-///                           /    \
-///                         58      70
-///                        /  \    /  \
-///                      80   92  97   99
-///            The value of Parent Node is small than Child Node.
-
-/// Every single parent node, including the top (root) node, is less than or 
-/// equal to the value of its children nodes. And left child is always less 
-/// than or equal to right child.
+/// <center><p>10<p></center>
+/// <center><p>/&emsp;&ensp;\</p></center>
+/// <center><p>58&emsp;&emsp;70</p></center>
+/// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
+/// <center><p>80&emsp;&ensp;92&emsp;97&emsp;&ensp;99</p></center>
 ///
-/// `PriorityQueue` allows duplicate score/item values. When you [`push`] the 
+/// > The value of Parent Node is small than Child Node.
+///
+/// Every parent node, including the top (root) node, is less than or equal 
+/// to the value of its children nodes. And left child is always less than or 
+/// equal to right child.
+///
+/// `PriorityQueue` allows duplicate score/item values. When you [`put`] the 
 /// item with the similar score that's already in the queue new entry will be 
 /// stored at the first empty location in memory. This gives incremental 
 /// performance boost (instead of resolving by using associated item as a 
@@ -58,17 +59,17 @@ use crate::rawpq::RawPQ;
 /// You can initilize an empty `PriorityQueue` and later add items:
 ///
 /// ```
-/// use priq::PriorityQueue;
+/// use priq::priq::PriorityQueue;
 ///
-/// let pq = PriorityQueue::new();
+/// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
 ///
-/// Or you can `heapify` from an array:
+/// Or you can `heapify` from an `Vec` and/or `slice`:
 ///
 /// ```
-/// use priq::PriorityQueue;
+/// use priq::priq::PriorityQueue;
 ///
-/// let pq = PriorityQueue::from([(3, "Odo"), (1, "Nergi"), (4, "Vaal")]);
+/// // todo
 /// ```
 /// 
 /// The standard usage of this data structure is to through [`put`] to add to 
@@ -81,26 +82,39 @@ use crate::rawpq::RawPQ;
 /// [`peek`]: PriorityQueue::peek
 /// [`pop`]: PriorityQueue::pop
 ///
-
+///
 /// Runtime complexity with Big-O Notation:
 /// 
-///     | method    | Time Complexity |
-///     |-----------|-----------------|
-///     | [`put`]   | O(log(n))       |
-///     |-----------|-----------------|
-///     | [`pop`]   | O(long(n))      |
-///     |-----------|-----------------|
-///     | [`peek`]  | O(1)            |
+/// | method    | Time Complexity |
+/// |-----------|-----------------|
+/// | [`put`]   | _O(log(n))_     |
+/// | [`pop`]   | _O(long(n))_    |
+/// | [`peek`]  | _O(1)_          |
 ///
-/// You can also iterate over using for loop but the returned slice will not 
-/// proper order as heap is re-balanced after each insertion and deletion. If
-/// you want to grab items in a proper priority call [`pop`] in a loop until 
-/// it returns `None`.
+/// You can also iterate over elements using _for loop_ but the returned slice 
+/// will not proper order as heap is re-balanced after each insertion and 
+/// deletion. If you want to grab items in a proper priority call [`pop`] in 
+/// a loop until it returns `None`.
+///
+/// What if you want to custom `struct` without having separate and specific score?
+/// You can pass the `struct` as a score and as an associated value (In this 
+/// case custom `struct` should implement `PartialOrd`):
+///
+/// ```
+/// use priq::priq::PriorityQueue;
+///
+/// #[derive(PartialOrd, PartialEq, Clone)]
+/// struct Wrapper(i32);
+///
+/// let mut pq: PriorityQueue<Wrapper, Wrapper> = PriorityQueue::new();
+/// let a_ = Wrapper(3);
+/// pq.put(a_.clone(), a_);
+/// ```
+///
 #[derive(Debug)]
 pub struct PriorityQueue<S, T> 
 where
     S: PartialOrd,
-    T: Clone
 {
     data: RawPQ<S, T>,
     len: usize,
@@ -110,14 +124,13 @@ where
 impl<S, T> PriorityQueue<S, T>
 where
     S: PartialOrd,
-    T: Clone
 {
     /// Create an empty `PriorityQueue`
     ///
     /// # Examples
     ///
     /// ```
-    /// use priq::PriorityQueue;
+    /// use priq::priq::PriorityQueue;
     ///
     /// let pq: PriorityQueue<f32, String> = PriorityQueue::new();
     /// ```
@@ -130,18 +143,18 @@ where
         }
     }
 
-    /// Create `PriorityQueue` from a slice
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use priq::PriorityQueue;
-    ///
-    /// let pq = PriorityQueue::from([(-1, 1), (-3, 3), (-2, 2)]);
-    /// ```
-    pub fn from(slice: &[(S, T)]) -> Self {
-        todo!()
-    }
+    // /// Create `PriorityQueue` from a slice
+    // ///
+    // /// # Examples
+    // ///
+    // /// ```
+    // /// use priq::priq::PriorityQueue;
+    // ///
+    // /// let pq = PriorityQueue::from([(-1, 1), (-3, 3), (-2, 2)]);
+    // /// ```
+    // pub fn from(slice: &) -> Self {
+    //     todo!()
+    // }
 
     /// If you expect that you'll be putting at least `n` number of items in 
     /// `PriorityQueue` you can create it with space of at least elements equal
@@ -151,12 +164,15 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::PriorityQueue;
+    /// use priq::priq::PriorityQueue;
     ///
     /// let pq: PriorityQueue<usize, usize> = PriorityQueue::with_capacity(100);
     /// ```
     pub fn with_capacity(cap: usize) -> Self {
-        todo!()
+        PriorityQueue {
+            data: RawPQ::with_capacity(cap),
+            len: 0,
+        }
     }
 
     /// Returns the number of elements in the `PriorityQueue`
@@ -164,9 +180,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::PriorityQueue;
+    /// use priq::priq::PriorityQueue;
     ///
-    /// let pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    /// let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
     /// assert_eq!(0, pq.len());
     ///
     /// pq.put(1, 99);
@@ -181,9 +197,9 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::PriorityQueue;
+    /// use priq::priq::PriorityQueue;
 
-    /// let pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    /// let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
     /// assert!(pq.is_empty());
     ///
     /// pq.put(1, 99);
@@ -315,8 +331,8 @@ where
 impl<S, T> Default for PriorityQueue<S, T>
 where
     S: PartialOrd,
-    T: Clone
 {
+    #[inline]
     fn default() -> Self {
         PriorityQueue::new()
     }
@@ -325,33 +341,30 @@ where
 impl<S, T> Drop for PriorityQueue<S, T>
 where
     S: PartialOrd,
-    T: Clone
 {
     fn drop(&mut self) {
         while self.pop().is_some() {}
     }
 }
 
-impl<S, T> Deref for PriorityQueue<S, T>
-where
-    S: PartialOrd,
-    T: Clone
-{
-    type Target = [(S, T)];
-    fn deref(&self) -> &[(S, T)] {
-        unsafe { std::slice::from_raw_parts(self.ptr(), self.len) }
-    }
-}
-
-impl<S, T> DerefMut for PriorityQueue<S, T>
-where
-    S: PartialOrd,
-    T: Copy + Clone
-{
-    fn deref_mut(&mut self) -> &mut [(S, T)] {
-        unsafe { std::slice::from_raw_parts_mut(self.ptr(), self.len) }
-    }
-}
+// impl<S, T> Deref for PriorityQueue<S, T>
+// where
+//     S: PartialOrd,
+// {
+//     type Target = [(S, T)];
+//     fn deref(&self) -> &[(S, T)] {
+//         unsafe { std::slice::from_raw_parts(self.ptr(), self.len) }
+//     }
+// }
+// 
+// impl<S, T> DerefMut for PriorityQueue<S, T>
+// where
+//     S: PartialOrd,
+// {
+//     fn deref_mut(&mut self) -> &mut [(S, T)] {
+//         unsafe { std::slice::from_raw_parts_mut(self.ptr(), self.len) }
+//     }
+// }
 
 pub struct IntoIter<S, T> {
     _buf: RawPQ<S, T>,

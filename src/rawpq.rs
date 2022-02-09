@@ -31,6 +31,23 @@ impl<S, T> RawPQ<S,T> {
         }
     }
 
+    pub fn with_capacity(cap: usize) -> Self {
+        assert_ne!(cap, 0, "Capacity Overflow");
+        let layout = alloc::Layout::array::<(S, T)>(cap).unwrap();
+
+        assert!(layout.size() <= MAX_ZST_CAPACITY, "Allocation is too large");
+        let new_ptr = unsafe { alloc::alloc(layout) };
+
+        RawPQ {
+            ptr: match ptr::NonNull::new(new_ptr as *mut (S, T)) {
+                Some(p) => p,
+                None => alloc::handle_alloc_error(layout),
+            },
+            cap,
+            _marker: marker::PhantomData,
+        }
+    }
+
     pub fn grow(&mut self) {
         assert_ne!(mem::size_of::<(S, T)>(), 0, "Capacity Overflow");
 
