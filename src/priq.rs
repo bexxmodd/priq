@@ -28,6 +28,7 @@
 use std::mem;
 use std::ptr;
 use std::cmp;
+use std::marker;
 use std::ops::{Deref, DerefMut};
 use std::convert::From;
 
@@ -102,10 +103,11 @@ use crate::rawpq::{self, RawPQ};
 /// What if you want to custom `struct ` without having a separate and 
 /// specific score? You can pass the `struct`’s clone as a `score` and as an 
 /// associated value, but if in this kind of scenario I’d recommend using
-/// `std::collections::binary_heap` as it better fits the purpose.
+/// [`std::collections::binary_heap`] as it better fits the purpose.
 ///
 /// If instead of Min-Heap you want to have Max-Heap, where the highest-scoring 
-/// element is on top you can pass score using `std::cmp::Reverse`:
+/// element is on top you can pass score using [`std::cmp::Reverse`] or a custom
+/// [`Ord`] implementation can be used to have custom prioritization logic.
 ///
 /// # Example
 ///
@@ -217,8 +219,11 @@ where
     /// <center><p>6&emsp;&emsp;9&emsp;5&emsp;&emsp;4</p></center>
     ///
     /// On a `PriorityQueue` with `len == 7` to `put` a new element it made 
-    /// three operations, from the last position to the top (worst case 
-    /// scenario), which is *O(log(n))*.
+    /// three operations, from the last position to the top (worst case).
+    /// 
+    /// # Time Complexity
+    ///
+    /// For worst case scenario ***O(log(n))***.
     ///
     pub fn put(&mut self, score: S, item: T) {
         if self.cap() == self.len { self.data.grow(); }
@@ -274,14 +279,18 @@ where
     ///
     /// ---------------------------------------------------------------------- 
     ///
-    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;2&emsp;<-- new top<p></center>
+    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;2&emsp;<-- new top<p></center>
     /// <center><p>/&emsp;&emsp;\</p></center>
     /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;3&emsp;&emsp;&emsp;4&emsp;<<&emsp;&emsp;&emsp;&emsp;</p></center>
     /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;</p></center>
     /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p></center>
     ///
     /// Parent-child relationship balanced itself from top to down and **2** 
-    /// became a new top (prioritized) element. Time Complexity ***O(log(n))***.
+    /// became a new top (prioritized) element.
+    ///
+    /// # Time Complexity
+    ///
+    /// Worst case is ***O(log(n))***.
     ///
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
@@ -316,6 +325,8 @@ where
     /// ```
     ///
     /// If `PriorityQueue` is empty it will return `None`.
+    ///
+    /// # Time Complexity
     ///
     /// `peek`-ing is done in a constant time ***O(1)***
     ///
@@ -359,6 +370,22 @@ where
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
+    }
+
+    pub fn clear(&mut self) {
+        self.drain();
+    }
+
+    pub fn drain(&mut self) -> Drain<S, T> {
+        unsafe {
+            let iter = RawPQIter::new(&self);
+            self.len = 0;
+
+            Drain {
+                pq: marker::PhantomData,
+                iter,
+            }
+        }
     }
 
     /// Provides the raw pointer to the contiguous block of memory of data
@@ -407,9 +434,9 @@ where
     #[inline]
     fn swap(&mut self, i: usize, j: usize) {
         unsafe {
-            let _a = ptr::read(&self.ptr().add(i));
-            let _b = ptr::read(&self.ptr().add(j));
-            ptr::swap(_a, _b);
+            let a_ = ptr::read(&self.ptr().add(i));
+            let b_ = ptr::read(&self.ptr().add(j));
+            ptr::swap(a_, b_);
         }
     }
 
@@ -571,6 +598,27 @@ impl<S, T> Drop for IntoIter<S, T> {
     }
 }
 
+impl<S, T> IntoIterator for PriorityQueue<S, T>
+where 
+    S: PartialOrd
+{
+    type Item = (S, T);
+    type IntoIter = IntoIter<S, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        unsafe {
+            let iter = RawPQIter::new(&self);
+            let _buf = ptr::read(&self.data);
+            mem::forget(self);
+
+            IntoIter {
+                iter,
+                _buf,
+            }
+        }
+    }
+}
+
 struct RawPQIter<S, T> {
     start: *const (S, T),
     end: *const (S, T),
@@ -616,5 +664,37 @@ impl<S, T> Iterator for RawPQIter<S, T> {
             0 => (len, Some(len)),
             i => (len / i, Some(len / i)),
         }
+    }
+}
+
+pub struct Drain<'a, S: 'a, T: 'a>
+where 
+    S: PartialOrd
+{
+    pq: marker::PhantomData<&'a mut PriorityQueue<S, T>>,
+    iter: RawPQIter<S, T>,
+}
+
+impl<'a, S, T> Iterator for Drain<'a, S, T>
+where 
+    S: PartialOrd
+{
+    type Item = (S, T);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+impl<'a, S, T> Drop for Drain<'a, S, T>
+where 
+    S: PartialOrd
+{
+    fn drop(&mut self) {
+        for _ in &mut *self {}
     }
 }
