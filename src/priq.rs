@@ -1,6 +1,6 @@
 //! Array implementation of the min/max heap.
 //!
-//! `PriorityQueue` is build on top of raw vector for efficient performance.
+//! `PriorityQueue` is build on top of raw array for efficient performance.
 //!
 //! There are two major reasons what makes this `PriorityQueue` different from
 //! other binary heap implementations currently available:
@@ -27,9 +27,11 @@
 
 use std::mem;
 use std::ptr;
+use std::cmp;
 use std::ops::{Deref, DerefMut};
+use std::convert::From;
 
-use crate::rawpq::RawPQ;
+use crate::rawpq::{self, RawPQ};
 
 /// A Min-Max Heap with designated arguments for `score` and associated `item`!
 ///
@@ -69,7 +71,8 @@ use crate::rawpq::RawPQ;
 /// ```
 /// use priq::priq::PriorityQueue;
 ///
-/// // todo
+/// let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
+/// let pq_from_slice = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
 /// ```
 /// 
 /// The standard usage of this data structure is to [`put`] an element to the 
@@ -148,21 +151,6 @@ where
         }
     }
 
-    // /// Create `PriorityQueue` from a slice
-    // ///
-    // /// # Examples
-    // ///
-    // /// ```
-    // /// use priq::priq::PriorityQueue;
-    // ///
-    // /// let pq = PriorityQueue::from([(-1, 1), (-3, 3), (-2, 2)]);
-    // /// ```
-    // #[inline]
-    // #[must_use]
-    // pub fn from(slice: &) -> Self {
-    //     todo!()
-    // }
-
     /// If you expect that you’ll be putting at least `n` number of items in 
     /// `PriorityQueue` you can create it with space of at least elements equal 
     /// to `cap`. This can boost the performance for a large number of sets 
@@ -192,10 +180,10 @@ where
     ///use priq::priq::PriorityQueue;
     ///
     /// let mut pq: PriorityQueue<usize, String> = PriorityQueue::new();
-    /// pq.put(1, "First".to_string());
-    /// pq.put(2, "Seconf".to_string());
+    /// pq.put(1, "Velkhana".to_string());
+    /// pq.put(2, "Shara".to_string());
     /// assert_eq!(2, pq.len());
-    /// assert_eq!("First", pq.pop().unwrap().1);
+    /// assert_eq!("Velkhana", pq.pop().unwrap().1);
     /// ```
     ///
     /// Element’s exact location will be determined based on its `score`. The 
@@ -242,6 +230,59 @@ where
         self.heapify_up(self.len - 1);
     }
 
+    /// Get the top priority element from `PriorityQueue`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///use priq::priq::PriorityQueue;
+    ///
+    /// let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    /// pq.put(2, String::from("Odo"));
+    /// pq.put(3, String::from("Vaal"));
+    /// pq.put(0, String::from("Nergi"));
+    /// assert_eq!("Nergi", pq.pop().unwrap().1);
+    /// assert_eq!("Odo", pq.pop().unwrap().1);
+    /// ```
+    ///
+    /// Element will be removed from the `PriorityQueue` and next lowest 
+    /// scoring item will be promoted as a top element (highest scoring if 
+    /// `PriorityQueue` is used as a Max Heap).
+    ///
+    /// After priority is removed and returned `PriorityQueue` will balance 
+    /// itself by promoting the next lowest scoring (or highest if Max Heap) 
+    /// element as a top node. First the last element in the array is moved as 
+    /// a top and percolated down with an insertion sort algorithm to find its
+    /// correct place. This allows the next prioritized item to end at top.
+    ///
+    /// For example, we have a tree with scores **[1, 3, 2, 6, 9, 5, 4]**. 
+    /// After we `pop` top element we get following movement:
+    ///
+    /// <center><p>&emsp;&emsp;&emsp;O&emsp;--> 1<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
+    /// <center><p>&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;4&emsp;<<</p></center>
+    ///
+    /// ----------------------------------------------------------------------
+    ///
+    /// <center><p>&emsp;&emsp;4&emsp;<<<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;</p></center>
+    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p></center>
+    ///
+    /// ---------------------------------------------------------------------- 
+    ///
+    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;2&emsp;<-- new top<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;3&emsp;&emsp;&emsp;4&emsp;<<&emsp;&emsp;&emsp;&emsp;</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;</p></center>
+    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p></center>
+    ///
+    /// Parent-child relationship balanced itself from top to down and **2** 
+    /// became a new top (prioritized) element. Time Complexity ***O(log(n))***.
+    ///
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
             unsafe {
@@ -256,6 +297,28 @@ where
         } else { None }
     }
 
+    /// Check what is a top element in `PriorityQueue`, by getting the reference.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::priq::PriorityQueue;
+    /// 
+    /// let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    /// assert!(pq.peek().is_none());
+    ///
+    /// pq.put(1, String::from("Ruiner"));
+    /// pq.put(3, String::from("Bazel"));
+    /// pq.put(2, String::from("Jho"));
+    /// assert_eq!(3, pq.len());
+    /// assert_eq!("Ruiner", pq.peek().unwrap().1);
+    /// assert_eq!(3, pq.len());
+    /// ```
+    ///
+    /// If `PriorityQueue` is empty it will return `None`.
+    ///
+    /// `peek`-ing is done in a constant time ***O(1)***
+    ///
     pub fn peek(&self) -> Option<&(S, T)> {
         if !self.is_empty() {
             unsafe {
@@ -352,6 +415,7 @@ where
 
     /// After item is `pop`-ed this methods helps to balance remaining values
     /// so the prioritized item remains as a root.
+    #[inline]
     fn heapify_up(&mut self, index: usize) {
         if index > 0 {
             let parent_ = self.parent(index);
@@ -365,6 +429,7 @@ where
 
     /// Store inserted value into a proper position to maintain the balanced
     /// order of parent child relationships and prioritized item as a root.
+    #[inline]
     fn heapify_down(&mut self, index: usize) {
         let _left = self.left_child(index);
         let _right = self.right_child(index);
@@ -404,24 +469,84 @@ where
     }
 }
 
-// impl<S, T> Deref for PriorityQueue<S, T>
-// where
-//     S: PartialOrd,
-// {
-//     type Target = [(S, T)];
-//     fn deref(&self) -> &[(S, T)] {
-//         unsafe { std::slice::from_raw_parts(self.ptr(), self.len) }
-//     }
-// }
-// 
-// impl<S, T> DerefMut for PriorityQueue<S, T>
-// where
-//     S: PartialOrd,
-// {
-//     fn deref_mut(&mut self) -> &mut [(S, T)] {
-//         unsafe { std::slice::from_raw_parts_mut(self.ptr(), self.len) }
-//     }
-// }
+impl<S, T> Deref for PriorityQueue<S, T>
+where
+    S: PartialOrd,
+{
+    type Target = [(S, T)];
+    fn deref(&self) -> &[(S, T)] {
+        unsafe { std::slice::from_raw_parts(self.ptr(), self.len) }
+    }
+}
+
+impl<S, T> DerefMut for PriorityQueue<S, T>
+where
+    S: PartialOrd,
+{
+    fn deref_mut(&mut self) -> &mut [(S, T)] {
+        unsafe { std::slice::from_raw_parts_mut(self.ptr(), self.len) }
+    }
+}
+
+impl<S, T> From<Vec<(S, T)>> for PriorityQueue<S, T>
+where 
+    S: PartialOrd,
+{
+    /// Create `PriorityQueue` from a `Vec` 
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::priq::PriorityQueue;
+    ///
+    /// let vec = vec![(5, 55), (4, 44), (2, 22), (3, 33)];
+    /// let mut pq = PriorityQueue::from(vec);
+    /// assert_eq!(4, pq.len());
+    /// assert_eq!(22, pq.pop().unwrap().1);
+    /// ```
+    fn from(other: Vec<(S, T)>) -> Self {
+        let len = other.len();
+        let _cap = rawpq::MIN_CAPACITY;
+        match mem::size_of::<(S, T)>() {
+            0 => assert!(len < rawpq::MAX_ZST_CAPACITY, "Capacity Overflow"),
+            _ => {
+                let min_cap = cmp::max(rawpq::MIN_CAPACITY, len) + 1;
+                let _cap = cmp::max(min_cap, other.capacity())
+                    .next_power_of_two();
+            }
+        }
+
+        let mut pq: PriorityQueue<S, T> = PriorityQueue::with_capacity(_cap);
+        other.into_iter()
+             .for_each(|(s, e)| pq.put(s, e));
+        pq
+    }
+}
+
+impl<S, T, const N: usize> From<[(S, T); N]> for PriorityQueue<S, T>
+where 
+    S: PartialOrd,
+{
+    /// Create `PriorityQueue` from a slice
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::priq::PriorityQueue;
+    ///
+    /// let pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    /// assert_eq!(3, pq.len());
+    /// assert_eq!(11, pq.peek().unwrap().1);
+    /// ```
+    fn from(arr: [(S, T); N]) -> Self {
+        let mut pq: PriorityQueue<S, T> = PriorityQueue::with_capacity(N);
+        if mem::size_of::<(S, T)>() != 0 {
+            arr.into_iter()
+               .for_each(|(s, e)| pq.put(s, e));
+        }
+        pq
+    }
+}
 
 pub struct IntoIter<S, T> {
     _buf: RawPQ<S, T>,
@@ -452,6 +577,7 @@ struct RawPQIter<S, T> {
 }
 
 impl<S, T> RawPQIter<S, T> {
+    #[allow(dead_code)]
     unsafe fn new(slice: &[(S, T)]) -> Self {
         RawPQIter {
             start: slice.as_ptr(),

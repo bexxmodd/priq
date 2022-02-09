@@ -152,3 +152,20 @@ fn pq_pop_100000_items_unordered() {
     });
     assert!(pq.is_empty());
 }
+
+#[test]
+fn pq_from_vec() {
+    let vec = vec![(5, 55), (1, 11), (4, 44), (2, 22), (3, 33)];
+    let mut pq = PriorityQueue::from(vec);
+    assert_eq!(5, pq.len());
+    assert_eq!(11, pq.pop().unwrap().1);
+    assert_eq!(22, pq.pop().unwrap().1);
+}
+
+#[test]
+fn pq_from_slice() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    assert_eq!(3, pq.len());
+    assert_eq!(11, pq.pop().unwrap().1);
+    assert_eq!(44, pq.pop().unwrap().1);
+}

@@ -4,7 +4,8 @@ use std::marker;
 use std::alloc;
 
 const INITIAL_CAPACITY: usize = 10;
-const MAX_ZST_CAPACITY: usize = 1 << (usize::BITS - 1);
+pub const MAX_ZST_CAPACITY: usize = 1 << (usize::BITS - 1);
+pub const MIN_CAPACITY: usize = 4;
 
 #[derive(Debug)]
 pub struct RawPQ<S, T> {
