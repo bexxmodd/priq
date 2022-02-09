@@ -1,3 +1,4 @@
+use std::cmp::Reverse;
 use rand::{seq::SliceRandom, thread_rng};
 use priq::priq::PriorityQueue;
 
@@ -35,6 +36,14 @@ fn pq_put_three() {
     pq.put(2.0, String::from("Ori"));
     pq.put(3.0, String::from("Sami"));
     assert_eq!(3, pq.len());
+}
+
+#[test]
+fn pq_as_max_heap() {
+    let mut pq: PriorityQueue<Reverse<u8>, String> = PriorityQueue::new();
+    pq.put(Reverse(26), "Z".to_string());
+    pq.put(Reverse(1), "A".to_string());
+    assert_eq!(pq.pop().unwrap().1, "Z");
 }
 
 #[test]

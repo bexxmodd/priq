@@ -31,9 +31,9 @@ use std::ops::{Deref, DerefMut};
 
 use crate::rawpq::RawPQ;
 
-/// A Min-Max Heap with separate arguments for `score` and associated `item`.
+/// A Min-Max Heap with designated arguments for `score` and associated `item`!
 ///
-/// `Default` implementation is a Min-Heap where the top node (root) is the 
+/// A `Default` implementation is a Min-Heap where the top node (root) is the 
 /// lowest scoring element:
 ///
 /// <center><p>10<p></center>
@@ -44,19 +44,19 @@ use crate::rawpq::RawPQ;
 ///
 /// > The value of Parent Node is small than Child Node.
 ///
-/// Every parent node, including the top (root) node, is less than or equal 
-/// to the value of its children nodes. And left child is always less than or 
-/// equal to right child.
+/// Every parent node, including the top (root) node, is less than or equal to 
+/// the value of its children nodes. And the left child is always less than or 
+/// equal to the right child.
 ///
-/// `PriorityQueue` allows duplicate score/item values. When you [`put`] the 
-/// item with the similar score that's already in the queue new entry will be 
-/// stored at the first empty location in memory. This gives incremental 
-/// performance boost (instead of resolving by using associated item as a 
+/// `PriorityQueue ` allows duplicate score/item values. When you [`put`]the 
+/// item with a similar score that’s already in the queue new entry will be 
+/// stored at the first empty location in memory. This gives an incremental 
+/// performance boost (instead of resolving by using the associated item as a 
 /// secondary tool to priority evaluation). Also, this form of implementation 
-/// doesn't enforce for the item `T` to have any implemented ordering.
-/// This guarantees that the top node will always be of minimum value.
+/// doesn’t enforce for the element `T` to have any implemented ordering. This
+/// guarantees that the top node will always be of minimum value.
 ///
-/// You can initilize an empty `PriorityQueue` and later add items:
+/// You can initialize an empty `PriorityQueue` and later add items:
 ///
 /// ```
 /// use priq::priq::PriorityQueue;
@@ -64,7 +64,7 @@ use crate::rawpq::RawPQ;
 /// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
 ///
-/// Or you can `heapify` from an `Vec` and/or `slice`:
+/// Or you can _heapify_ a `Vec` and/or a `slice`:
 ///
 /// ```
 /// use priq::priq::PriorityQueue;
@@ -72,11 +72,11 @@ use crate::rawpq::RawPQ;
 /// // todo
 /// ```
 /// 
-/// The standard usage of this data structure is to through [`put`] to add to 
-/// the queue and [`pop`] to remove the top item, and [`peek`] to check what's 
-/// the top item in the queue. Stored structure of the items is a balanced tree 
-/// realized using an array with contiguous memory location. This allows to 
-/// maintain proper parent child relationship between [`put`]-ed items.
+/// The standard usage of this data structure is to [`put`] an element to the 
+/// queue and [`pop`] to remove the top element and peek to check what’s the 
+/// top element in the queue. The stored structure of the elements is a balanced
+/// tree realized using an array with a contiguous memory location. This allows
+/// maintaining a proper parent-child relationship between put-ed items.
 ///
 /// [`put`]: PriorityQueue::put
 /// [`peek`]: PriorityQueue::peek
@@ -91,24 +91,29 @@ use crate::rawpq::RawPQ;
 /// | [`pop`]   | _O(long(n))_    |
 /// | [`peek`]  | _O(1)_          |
 ///
-/// You can also iterate over elements using _for loop_ but the returned slice 
-/// will not proper order as heap is re-balanced after each insertion and 
-/// deletion. If you want to grab items in a proper priority call [`pop`] in 
-/// a loop until it returns `None`.
+/// You can also iterate over elements using for loop but the returned slice 
+/// will not be properly order as the heap is re-balanced after each insertion 
+/// and deletion. If you want to grab items in a proper priority call [`pop`] 
+/// in a loop until it returns `None`.
 ///
-/// What if you want to custom `struct` without having separate and specific score?
-/// You can pass the `struct` as a score and as an associated value (In this 
-/// case custom `struct` should implement `PartialOrd`):
+/// What if you want to custom `struct ` without having a separate and 
+/// specific score? You can pass the `struct`’s clone as a `score` and as an 
+/// associated value, but if in this kind of scenario I’d recommend using
+/// `std::collections::binary_heap` as it better fits the purpose.
+///
+/// If instead of Min-Heap you want to have Max-Heap, where the highest-scoring 
+/// element is on top you can pass score using `std::cmp::Reverse`:
+///
+/// # Example
 ///
 /// ```
+/// use std::cmp::Reverse;
 /// use priq::priq::PriorityQueue;
 ///
-/// #[derive(PartialOrd, PartialEq, Clone)]
-/// struct Wrapper(i32);
-///
-/// let mut pq: PriorityQueue<Wrapper, Wrapper> = PriorityQueue::new();
-/// let a_ = Wrapper(3);
-/// pq.put(a_.clone(), a_);
+/// let mut pq: PriorityQueue<Reverse<u8>, String> = PriorityQueue::new();
+/// pq.put(Reverse(26), "Z".to_string());
+/// pq.put(Reverse(1), "A".to_string());
+/// assert_eq!(pq.pop().unwrap().1, "Z");
 /// ```
 ///
 #[derive(Debug)]
@@ -152,14 +157,16 @@ where
     // ///
     // /// let pq = PriorityQueue::from([(-1, 1), (-3, 3), (-2, 2)]);
     // /// ```
+    // #[inline]
+    // #[must_use]
     // pub fn from(slice: &) -> Self {
     //     todo!()
     // }
 
-    /// If you expect that you'll be putting at least `n` number of items in 
-    /// `PriorityQueue` you can create it with space of at least elements equal
-    /// to `cap`. This can boost the performance for the large number of sets, 
-    /// because it will eliminate the need to grow underlying array more often.
+    /// If you expect that you’ll be putting at least `n` number of items in 
+    /// `PriorityQueue` you can create it with space of at least elements equal 
+    /// to `cap`. This can boost the performance for a large number of sets 
+    /// because it'll eliminate the need to grow the underlying array often.
     ///
     /// # Examples
     ///
@@ -168,11 +175,93 @@ where
     ///
     /// let pq: PriorityQueue<usize, usize> = PriorityQueue::with_capacity(100);
     /// ```
+    #[inline]
+    #[must_use]
     pub fn with_capacity(cap: usize) -> Self {
         PriorityQueue {
             data: RawPQ::with_capacity(cap),
             len: 0,
         }
+    }
+
+    /// Inserts an element in the heap.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    ///use priq::priq::PriorityQueue;
+    ///
+    /// let mut pq: PriorityQueue<usize, String> = PriorityQueue::new();
+    /// pq.put(1, "First".to_string());
+    /// pq.put(2, "Seconf".to_string());
+    /// assert_eq!(2, pq.len());
+    /// assert_eq!("First", pq.pop().unwrap().1);
+    /// ```
+    ///
+    /// Element’s exact location will be determined based on its `score`. The 
+    /// element will start as a last element in the `PriorityQueue` and then 
+    /// percolate up using insertion sort operations on the path from the end 
+    /// to the root to find the correct place for it.
+    ///
+    /// For example, we have a tree with scores **[2, 3, 4, 6, 9, 5, 4]** and 
+    /// we want to `put` an element with a score of ***1***:
+    ///
+    /// <center><p>2<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>3&emsp;&emsp;&emsp;4</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
+    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;X&emsp;<-- 1&emsp;&emsp;&emsp;</p></center>
+    ///
+    /// ---------------------------------------------------------------------- 
+    ///
+    /// <center><p>2<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;3&emsp;&emsp;&emsp;X&emsp;<-- 1&emsp;&emsp;&emsp;</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
+    /// <center><p>6&emsp;&emsp;9&emsp;5&emsp;&emsp;4</p></center>
+    ///
+    /// ---------------------------------------------------------------------- 
+    ///
+    /// <center><p>&emsp;&emsp;&emsp;X&emsp;<-- 1<p></center>
+    /// <center><p>/&emsp;&emsp;\</p></center>
+    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
+    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
+    /// <center><p>6&emsp;&emsp;9&emsp;5&emsp;&emsp;4</p></center>
+    ///
+    /// On a `PriorityQueue` with `len == 7` to `put` a new element it made 
+    /// three operations, from the last position to the top (worst case 
+    /// scenario), which is *O(log(n))*.
+    ///
+    pub fn put(&mut self, score: S, item: T) {
+        if self.cap() == self.len { self.data.grow(); }
+        self.len += 1;
+        let _entry = (score, item);
+        unsafe {
+            ptr::write(self.ptr().add(self.len - 1), _entry);
+        }
+        self.heapify_up(self.len - 1);
+    }
+
+    pub fn pop(&mut self) -> Option<(S, T)> {
+        if self.len > 0 {
+            unsafe {
+                let _top = ptr::read(self.ptr());
+                let _tmp = ptr::read(self.ptr().add(self.len - 1));
+                ptr::write(self.ptr(), _tmp);
+                self.len -= 1;
+                
+                if self.len > 1 { self.heapify_down(0); }
+                Some(_top)
+            }
+        } else { None }
+    }
+
+    pub fn peek(&self) -> Option<&(S, T)> {
+        if !self.is_empty() {
+            unsafe {
+                ptr::read(&self.ptr().as_ref())
+            }
+        } else { None }
     }
 
     /// Returns the number of elements in the `PriorityQueue`
@@ -207,38 +296,6 @@ where
     /// ```
     pub fn is_empty(&self) -> bool {
         self.len == 0
-    }
-
-    pub fn put(&mut self, score: S, item: T) {
-        if self.cap() == self.len { self.data.grow(); }
-        self.len += 1;
-        let _entry = (score, item);
-        unsafe {
-            ptr::write(self.ptr().add(self.len - 1), _entry);
-        }
-        self.heapify_up(self.len - 1);
-    }
-
-    pub fn pop(&mut self) -> Option<(S, T)> {
-        if self.len > 0 {
-            unsafe {
-                let _top = ptr::read(self.ptr());
-                let _tmp = ptr::read(self.ptr().add(self.len - 1));
-                ptr::write(self.ptr(), _tmp);
-                self.len -= 1;
-                
-                if self.len > 1 { self.heapify_down(0); }
-                Some(_top)
-            }
-        } else { None }
-    }
-
-    pub fn peek(&self) -> Option<&(S, T)> {
-        if !self.is_empty() {
-            unsafe {
-                ptr::read(&self.ptr().as_ref())
-            }
-        } else { None }
     }
 
     /// Provides the raw pointer to the contiguous block of memory of data

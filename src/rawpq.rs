@@ -3,7 +3,6 @@ use std::ptr;
 use std::marker;
 use std::alloc;
 
-
 const INITIAL_CAPACITY: usize = 10;
 const MAX_ZST_CAPACITY: usize = 1 << (usize::BITS - 1);
 
