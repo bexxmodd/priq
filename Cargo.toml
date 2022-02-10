@@ -5,7 +5,7 @@ edition = "2021"
 
 authors = ["Beka M. <bexx.modd@gmail.com>"]
 description = "Array implementation of the min/max heap"
-documentation = ""
+documentation = "https://github.com/bexxmodd/priq"
 readme = "README.md"
 homepage = "https://github.com/bexxmodd/priq"
 
