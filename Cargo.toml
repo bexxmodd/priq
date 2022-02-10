@@ -7,6 +7,7 @@ authors = ["Beka M. <bexx.modd@gmail.com>"]
 description = "Array implementation of the min/max heap"
 documentation = ""
 readme = "README.md"
+homepage = "https://github.com/bexxmodd/priq"
 
 license = "MIT"
 categories = ["data-structure", "priority-queue", "binary-heap"]

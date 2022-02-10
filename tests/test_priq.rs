@@ -174,3 +174,33 @@ fn pq_from_slice() {
     assert_eq!(44, pq.pop().unwrap().1);
 }
 
+#[test]
+fn pq_clear() {
+    let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
+    pq.put(1, String::from("Erti"));
+    pq.put(2, String::from("Ori"));
+    pq.put(3, String::from("Sami"));
+    pq.put(4, String::from("Otxi"));
+    pq.clear();
+    assert!(pq.is_empty());
+}
+
+#[test]
+fn pq_drain() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    assert!(!pq.is_empty());
+    
+    for (s, e) in pq.drain() { assert!(s > 0 && e > 0) };
+    assert!(pq.is_empty());
+
+}
+
+#[test]
+fn pq_into_sorted_vec() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    let mut res = pq.into_sorted_vec(); 
+    assert_eq!(3, res.len());
+    assert_eq!(55, res.pop().unwrap().1);
+    assert_eq!(44, res.pop().unwrap().1);
+    assert_eq!(11, res.pop().unwrap().1);
+}

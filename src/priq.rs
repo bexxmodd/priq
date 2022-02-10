@@ -1,6 +1,6 @@
-//! Array implementation of the min/max heap.
+//! Priority queue (min/max heap) using raw binary heap.
 //!
-//! `PriorityQueue` is build on top of raw array for efficient performance.
+//! `PriorityQueue` is build on using raw array for efficient performance.
 //!
 //! There are two major reasons what makes this `PriorityQueue` different from
 //! other binary heap implementations currently available:
@@ -68,6 +68,7 @@ use rawpq::RawPQ;
 /// ```
 /// use priq::PriorityQueue;
 ///
+/// // create queue with `usize` key and `String` elements
 /// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
 ///
@@ -79,6 +80,8 @@ use rawpq::RawPQ;
 /// let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
 /// let pq_from_slice = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
 /// ```
+/// 
+/// # Time
 /// 
 /// The standard usage of this data structure is to [`put`] an element to the 
 /// queue and [`pop`] to remove the top element and peek to check what’s the 
@@ -104,27 +107,37 @@ use rawpq::RawPQ;
 /// and deletion. If you want to grab items in a proper priority call [`pop`] 
 /// in a loop until it returns `None`.
 ///
+///
+/// # Custom `struct`
+///
 /// What if you want to custom `struct ` without having a separate and 
 /// specific score? You can pass the `struct`’s clone as a `score` and as an 
 /// associated value, but if in this kind of scenario I’d recommend using
-/// [`std::collections::binary_heap`] as it better fits the purpose.
+/// [`BinaryHeap`] as it better fits the purpose.
+///
+///
+/// # Min-Heap
 ///
 /// If instead of Min-Heap you want to have Max-Heap, where the highest-scoring 
-/// element is on top you can pass score using [`std::cmp::Reverse`] or a custom
-/// [`Ord`] implementation can be used to have custom prioritization logic.
+/// element is on top you can pass score using [`Reverse`] or a custom [`Ord`] 
+/// implementation can be used to have custom prioritization logic.
+///
+/// [`BinaryHeap`]: std::collections::BinaryHeap
+/// [`Reverse`]: std::cmp::Reverse
 ///
 /// # Example
 ///
 /// ```
-/// use std::cmp::Reverse;
 /// use priq::PriorityQueue;
+/// use std::cmp::Reverse;
 ///
 /// let mut pq: PriorityQueue<Reverse<u8>, String> = PriorityQueue::new();
+///
 /// pq.put(Reverse(26), "Z".to_string());
 /// pq.put(Reverse(1), "A".to_string());
+///
 /// assert_eq!(pq.pop().unwrap().1, "Z");
 /// ```
-///
 #[derive(Debug)]
 pub struct PriorityQueue<S, T> 
 where
@@ -379,10 +392,37 @@ where
         self.len == 0
     }
 
+    /// Remove all the elements from `PriorityQueue`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    /// assert!(!pq.is_empty());
+    ///
+    /// pq.clear();
+    /// assert!(pq.is_empty());
+    /// ```
     pub fn clear(&mut self) {
         self.drain();
     }
 
+    /// Clears the priority queue, returning iterator over the removed elements
+    /// returned items will NOT be in a sorted order.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    /// assert!(!pq.is_empty());
+    ///
+    /// for (s, e) in pq.drain() { println!("{}, {}", s, e) };
+    /// assert!(pq.is_empty());
+    /// ```
     pub fn drain(&mut self) -> Drain<S, T> {
         unsafe {
             let iter = RawPQIter::new(&self);
@@ -393,6 +433,32 @@ where
                 iter,
             }
         }
+    }
+
+    /// Clears the priority queue and returns `Vec` with elements in a 
+    /// sorted order.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    ///
+    /// let mut res = pq.into_sorted_vec(); 
+    ///
+    /// assert_eq!(3, res.len());
+    /// assert_eq!(55, res.pop().unwrap().1);
+    /// assert_eq!(44, res.pop().unwrap().1);
+    /// assert_eq!(11, res.pop().unwrap().1);
+    /// ```
+    pub fn into_sorted_vec(&mut self) -> Vec<(S, T)> {
+        let mut res = vec![];
+        while self.len > 0 {
+            let elem = self.pop().unwrap();
+            res.push(elem);
+        }
+        res
     }
 
     /// Provides the raw pointer to the contiguous block of memory of data
