@@ -5,7 +5,6 @@
 extern crate bencher;
 extern crate priq;
 
-use priq::*;
 use self::bencher::Bencher;
 use std::collections::BinaryHeap;
 
@@ -14,7 +13,7 @@ fn bh_push_100(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 100_usize;
     b.iter(|| {
-        (0..n).for_each(|i| { bh.push(i * 2); });
+        (0..n).for_each(|i| { bh.push((i, i * 2)); });
     });
 }
 
@@ -23,7 +22,7 @@ fn bh_push_1k(b: &mut Bencher) {
     let n = 1_000_usize;
     let mut bh = BinaryHeap::new();
     b.iter(|| {
-        (0..n).for_each(|i| { bh.push(i * 2); });
+        (0..n).for_each(|i| { bh.push((i, i * 2)); });
     });
 }
 
@@ -32,7 +31,7 @@ fn bh_push_10k(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 10_000_usize;
     b.iter(|| {
-        (0..n).for_each(|i| { bh.push(i * 2); });
+        (0..n).for_each(|i| { bh.push((i, i * 2)); });
     });
 }
 
@@ -41,7 +40,7 @@ fn bh_push_100k(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 1_000_000_usize;
     b.iter(|| {
-        (0..n).for_each(|i| { bh.push(i * 2); });
+        (0..n).for_each(|i| { bh.push((i, i * 2)); });
     });
 }
 
@@ -50,7 +49,7 @@ fn bh_push_1mil(b: &mut Bencher) {
     let n = 1_000_000_usize;
     let mut bh = BinaryHeap::new();
     b.iter(|| {
-        (0..n).for_each(|i| { bh.push(i * 2); });
+        (0..n).for_each(|i| { bh.push((i, i * 2)); });
     });
 }
 
@@ -58,7 +57,7 @@ fn bh_push_1mil(b: &mut Bencher) {
 fn bh_pop_100(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 100_usize;
-    (0..n).for_each(|i| { bh.push(i * 2); });
+    (0..n).for_each(|i| { bh.push((i, i * 2)); });
     b.iter(|| {
         (0..n).for_each(|_| { bh.pop(); });
     });
@@ -68,7 +67,7 @@ fn bh_pop_100(b: &mut Bencher) {
 fn bh_pop_1k(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 1_000_usize;
-    (0..n).for_each(|i| { bh.push(i * 2); });
+    (0..n).for_each(|i| { bh.push((i, i * 2)); });
     b.iter(|| {
         (0..n).for_each(|_| { bh.pop(); });
     });
@@ -78,7 +77,7 @@ fn bh_pop_1k(b: &mut Bencher) {
 fn bh_pop_10k(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 10_000_usize;
-    (0..n).for_each(|i| { bh.push(i * 2); });
+    (0..n).for_each(|i| { bh.push((i, i * 2)); });
     b.iter(|| {
         (0..n).for_each(|_| { bh.pop(); });
     });
@@ -88,7 +87,7 @@ fn bh_pop_10k(b: &mut Bencher) {
 fn bh_pop_100k(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 100_000_usize;
-    (0..n).for_each(|i| { bh.push(i * 2); });
+    (0..n).for_each(|i| { bh.push((i, i * 2)); });
     b.iter(|| {
         (0..n).for_each(|_| { bh.pop(); });
     });
@@ -98,7 +97,7 @@ fn bh_pop_100k(b: &mut Bencher) {
 fn bh_pop_1mil(b: &mut Bencher) {
     let mut bh = BinaryHeap::new();
     let n = 1_000_000_usize;
-    (0..n).for_each(|i| { bh.push(i * 2); });
+    (0..n).for_each(|i| { bh.push((i, i * 2)); });
     b.iter(|| {
         (0..n).for_each(|_| { bh.pop(); });
     });
