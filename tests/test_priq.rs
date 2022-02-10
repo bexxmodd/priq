@@ -204,3 +204,19 @@ fn pq_into_sorted_vec() {
     assert_eq!(44, res.pop().unwrap().1);
     assert_eq!(11, res.pop().unwrap().1);
 }
+
+#[test]
+fn pq_with_nan() {
+    let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
+    pq.put(1.1, 10);
+    pq.put(f32::NAN, -1);
+    pq.put(2.2, 20);
+    pq.put(3.3, 30);
+    pq.put(f32::NAN, -3);
+    pq.put(4.4, 40);
+    
+    (1..=4).for_each(|i| assert_eq!(i * 10, pq.pop().unwrap().1));
+    assert!(0 > pq.pop().unwrap().1);
+    assert!(0 > pq.pop().unwrap().1);
+}
+

@@ -1,16 +1,18 @@
 //! Priority queue (min/max heap) using raw binary heap.
 //!
-//! `PriorityQueue` is build on using raw array for efficient performance.
+//! `PriorityQueue` is built using raw array for efficient performance.
 //!
 //! There are two major reasons what makes this `PriorityQueue` different from
 //! other binary heap implementations currently available:
 //!
 //! 1 - Allows data ordering to scores with `PartialOrd`.
-//!     - Every other min-max heap requires 
-//!     [total ordering](https://bit.ly/3GCWvYL) of scores (e.g. should 
-//!     implement `Ord` trait). This can be an issue, for example, when you 
-//!     want to order items based on a float scores, which doesn't implement
-//!     `Ord` trait.
+//!     - Every other min-max heap requires [total ordering](https://bit.ly/3GCWvYL) 
+//!     of scores (e.g. should implement `Ord` trait). This can be an issue, 
+//!     for example, when you want to order items based on a float scores, 
+//!     which doesn't implement `Ord` trait.
+//!     - Because of partial ordering, non-comparable values are thrown in 
+//!     the end of the queue. One will see non-comparable values only after all 
+//!     the comparable elements have been `pop`-ed.
 //!     - You can read about Rust's implementation or `Ord`, `PartialOrd` and 
 //!     what's the different [here](https://bit.ly/3J7NwQI)
 //!
@@ -24,7 +26,6 @@
 //! 4 - Easy to use!
 //!
 //! You can read more about this crate on [my blog](https://www.bexxmodd.com)
-//!
 
 extern crate rand;
 
@@ -52,7 +53,6 @@ use rawpq::RawPQ;
 /// > The value of Parent Node is small than Child Node.
 ///
 /// Every parent node, including the top (root) node, is less than or equal to 
-/// the value of its children nodes. And the left child is always less than or 
 /// equal to the right child.
 ///
 /// `PriorityQueue ` allows duplicate score/item values. When you [`put`]the 
@@ -79,6 +79,32 @@ use rawpq::RawPQ;
 ///
 /// let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
 /// let pq_from_slice = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+/// ```
+///
+/// # Partial Ordering
+///
+/// Because `priq` allows `score` arguments that only implement `PartialOrd`, 
+/// elements that can't be compared are evaluated and are put in the back of
+/// the queue:
+///
+/// ```
+/// use priq::PriorityQueue;
+///
+/// let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
+///
+/// pq.put(1.1, 10);
+/// pq.put(f32::NAN, -1);
+/// pq.put(2.2, 20);
+/// pq.put(3.3, 30);
+/// pq.put(f32::NAN, -3);
+/// pq.put(4.4, 40);
+/// 
+/// (1..=4).for_each(|i| assert_eq!(i * 10, pq.pop().unwrap().1));
+///
+/// // NAN scores will not have deterministic order
+/// // they are just stored after all the comparable scores
+/// assert!(0 > pq.pop().unwrap().1);
+/// assert!(0 > pq.pop().unwrap().1);
 /// ```
 /// 
 /// # Time
@@ -245,10 +271,7 @@ where
     pub fn put(&mut self, score: S, item: T) {
         if self.cap() == self.len { self.data.grow(); }
         self.len += 1;
-        let _entry = (score, item);
-        unsafe {
-            ptr::write(self.ptr().add(self.len - 1), _entry);
-        }
+        unsafe { ptr::write(self.ptr().add(self.len - 1), (score, item)) };
         self.heapify_up(self.len - 1);
     }
 
@@ -311,18 +334,22 @@ where
     ///
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
-            unsafe {
-                let _top = ptr::read(self.ptr());
-                let _tmp = ptr::read(self.ptr().add(self.len - 1));
-                ptr::write(self.ptr(), _tmp);
-                self.len -= 1;
-                
-                if self.len > 1 { self.heapify_down(0); }
-                if self.cap() > 10_000 && self.cap() / 4 >= self.len {
-                    self.data.shrink();
-                }
-                Some(_top)
+            let last_ = self.len - 1;
+            if self.len > 1 && self[0].0.partial_cmp(&self[0].0).is_none() {
+                self.swap(0, last_);
             }
+
+            let _top = unsafe { ptr::read(self.ptr()) };
+            let _tmp = unsafe { ptr::read(self.ptr().add(self.len - 1)) };
+            unsafe { ptr::write(self.ptr(), _tmp) };
+
+            self.len -= 1;
+            
+            if self.len > 1 { self.heapify_down(0); }
+            if self.cap() > 10_000 && self.cap() / 4 >= self.len {
+                self.data.shrink();
+            }
+            Some(_top)
         } else { None }
     }
 
@@ -352,9 +379,7 @@ where
     ///
     pub fn peek(&self) -> Option<&(S, T)> {
         if !self.is_empty() {
-            unsafe {
-                ptr::read(&self.ptr().as_ref())
-            }
+            Some(&self[0])
         } else { None }
     }
 
@@ -424,14 +449,11 @@ where
     /// assert!(pq.is_empty());
     /// ```
     pub fn drain(&mut self) -> Drain<S, T> {
-        unsafe {
-            let iter = RawPQIter::new(&self);
-            self.len = 0;
-
-            Drain {
-                pq: marker::PhantomData,
-                iter,
-            }
+        let iter = unsafe { RawPQIter::new(&self) };
+        self.len = 0;
+        Drain {
+            pq: marker::PhantomData,
+            iter,
         }
     }
 
@@ -503,24 +525,13 @@ where
         self.right_child(index) < self.len
     }
 
-    /// Swaps two values of provided indices in memory
-    #[inline]
-    fn swap(&mut self, i: usize, j: usize) {
-        unsafe {
-            let a_ = ptr::read(&self.ptr().add(i));
-            let b_ = ptr::read(&self.ptr().add(j));
-            ptr::swap(a_, b_);
-        }
-    }
-
     /// After item is `pop`-ed this methods helps to balance remaining values
     /// so the prioritized item remains as a root.
     #[inline]
     fn heapify_up(&mut self, index: usize) {
         if index > 0 {
             let parent_ = self.parent(index);
-            let res = ptr::slice_from_raw_parts(self.ptr(), self.len);
-            if unsafe { (&*res)[parent_].0 > (&*res)[index].0 } {
+            if self[parent_].0 > self[index].0 {
                 self.swap(parent_, index);
                 self.heapify_up(parent_);
             }
@@ -534,18 +545,16 @@ where
         let _left = self.left_child(index);
         let _right = self.right_child(index);
         let mut min_ = index;
-        unsafe {
-            let heap_ = &*ptr::slice_from_raw_parts(self.ptr(), self.len);
-            if self.has_left(index) && heap_[_left].0 < heap_[min_].0 {
-                min_ = _left;
-            }
-            if self.has_right(index) && heap_[_right].0 < heap_[min_].0 {
-                min_ = _right;
-            }
-            if min_ != index {
-                self.swap(index, min_);
-                self.heapify_down(min_);
-            }
+        if self.has_left(index) && self[_left].0 < self[min_].0 {
+            min_ = _left;
+        }
+        if self.has_right(index) && self[_right].0 < self[min_].0 {
+            min_ = _right;
+        }
+
+        if min_ != index {
+            self.swap(index, min_);
+            self.heapify_down(min_);
         }
     }
 }
@@ -673,7 +682,7 @@ impl<S, T> Drop for IntoIter<S, T> {
 
 impl<S, T> IntoIterator for PriorityQueue<S, T>
 where 
-    S: PartialOrd
+    S: PartialOrd + Clone
 {
     type Item = (S, T);
     type IntoIter = IntoIter<S, T>;
@@ -742,7 +751,7 @@ impl<S, T> Iterator for RawPQIter<S, T> {
 
 pub struct Drain<'a, S: 'a, T: 'a>
 where 
-    S: PartialOrd
+    S: PartialOrd,
 {
     pq: marker::PhantomData<&'a mut PriorityQueue<S, T>>,
     iter: RawPQIter<S, T>,
@@ -750,7 +759,7 @@ where
 
 impl<'a, S, T> Iterator for Drain<'a, S, T>
 where 
-    S: PartialOrd
+    S: PartialOrd,
 {
     type Item = (S, T);
 
@@ -765,7 +774,7 @@ where
 
 impl<'a, S, T> Drop for Drain<'a, S, T>
 where 
-    S: PartialOrd
+    S: PartialOrd,
 {
     fn drop(&mut self) {
         for _ in &mut *self {}

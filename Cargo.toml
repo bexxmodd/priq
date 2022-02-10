@@ -1,11 +1,11 @@
 [package]
 name = "priq"
-version = "0.1.1"
+version = "0.1.5"
 edition = "2021"
 
 authors = ["Beka M. <bexx.modd@gmail.com>"]
 description = "Array implementation of the min/max heap"
-documentation = "https://github.com/bexxmodd/priq"
+documentation = "https://docs.rs/priq/latest/priq/struct.PriorityQueue.html"
 readme = "README.md"
 homepage = "https://github.com/bexxmodd/priq"
 
