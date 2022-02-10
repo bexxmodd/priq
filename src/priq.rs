@@ -96,7 +96,7 @@ use rawpq::RawPQ;
 /// | method    | Time Complexity |
 /// |-----------|-----------------|
 /// | [`put`]   | _O(log(n))_     |
-/// | [`pop`]   | _O(long(n))_    |
+/// | [`pop`]   | _O(log(n))_     |
 /// | [`peek`]  | _O(1)_          |
 ///
 /// You can also iterate over elements using for loop but the returned slice 
@@ -305,6 +305,9 @@ where
                 self.len -= 1;
                 
                 if self.len > 1 { self.heapify_down(0); }
+                if self.cap() > 10_000 && self.cap() / 4 >= self.len {
+                    self.data.shrink();
+                }
                 Some(_top)
             }
         } else { None }

@@ -40,7 +40,7 @@ lowest scoring element:
 <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
 <center><p>80&emsp;&ensp;92&emsp;97&emsp;&ensp;99</p></center>
 
-> The value of Parent Node is small than Child Node.
+> The value of Parent Node is smaller than Child Node.
 
 Every parent node, including the top (root) node, is less than or equal to 
 the value of its children nodes. And the left child is always less than or 
@@ -116,17 +116,33 @@ assert_eq!(pq.pop().unwrap().1, "Z");
 This are the benchmark results for `priq::PriorityQueue`:
 
 
-|bench name | median | nanosecs | std.dev |
+| `priq` benches | median | nanosecs | std.dev |
 |-----|-------:|:----------:|:--------|
-| pq_pop_100      |          148| ns/iter| (+/- 3) |
-| pq_pop_100k     |      297,467| ns/iter| (+/- 24,467) |
-| pq_pop_10k      |       14,390| ns/iter| (+/- 988) |
-| pq_pop_1k       |        1,641| ns/iter| (+/- 24) |
-| pq_pop_1mil     |   16,569,414| ns/iter| (+/- 1,185,927) |
-| pq_put_100      |          491| ns/iter| (+/- 6) |
-| pq_put_100k     |      809,884| ns/iter| (+/- 60,207) |
-| pq_put_100k_wcap|      788,107| ns/iter| (+/- 67,312) |
-| pq_put_10k      |       84,108| ns/iter| (+/- 3,010) |
-| pq_put_1k       |        4,699| ns/iter| (+/- 155) |
-| pq_put_1mil     |    6,993,994| ns/iter| (+/- 664,971) |
-| pq_put_1mil_wcap|    7,248,213| ns/iter| (+/- 643,994) |
+| pq_pop_100      |        146 | ns/iter | (+/- 1)
+| pq_pop_100k     |    291,818 | ns/iter | (+/- 5,686)
+| pq_pop_10k      |     14,129 | ns/iter | (+/- 39)
+| pq_pop_1k       |      1,646 | ns/iter | (+/- 32)
+| pq_pop_1mil     | 16,517,047 | ns/iter | (+/- 569,128|
+| pq_put_100      |        488 | ns/iter | (+/- 21)
+| pq_put_100k     |    758,422 | ns/iter | (+/- 13,961)
+| pq_put_100k_wcap|    748,824 | ns/iter | (+/- 7,926)
+| pq_put_10k      |     80,668 | ns/iter | (+/- 1,324)
+| pq_put_1k       |      8,769 | ns/iter | (+/- 78)
+| pq_put_1mil     |  6,728,203 | ns/iter | (+/- 76,416)
+| pq_put_1mil_wcap|  6,622,341 | ns/iter | (+/- 77,162)
+
+
+How it compares to `std::collections::BinaryHeap`:
+
+| `BinaryHeap` benches | median | nanosecs | std.dev |
+|-----|-------:|:----------:|:--------|
+| bh_pop_100  |         272 | ns/iter | (+/- 90)
+| bh_pop_100k |     171,071 | ns/iter | (+/- 6,131)
+| bh_pop_10k  |      13,904 | ns/iter | (+/- 130)
+| bh_pop_1k   |       1,847 | ns/iter | (+/- 6)
+| bh_pop_1mil |   8,772,066 | ns/iter | (+/- 611,613)
+| bh_push_100 |         857 | ns/iter | (+/- 50)
+| bh_push_100k|     943,465 | ns/iter | (+/- 108,698)
+| bh_push_10k |      92,807 | ns/iter | (+/- 7,930)
+| bh_push_1k  |       8,606 | ns/iter | (+/- 639)
+| bh_push_1mil|  12,946,815 | ns/iter | (+/- 900,347)

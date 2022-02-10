@@ -11,8 +11,8 @@ use self::bencher::Bencher;
 /// Benchmark putting 100 elements
 fn pq_put_100(b: &mut Bencher) {
     let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    let n = 100_usize;
     b.iter(|| {
-        let n = 100_usize;
         (0..n).for_each(|i| { pq.put(i, i * 2); });
     });
 }
@@ -20,8 +20,8 @@ fn pq_put_100(b: &mut Bencher) {
 /// Benchmark putting 1k elements
 fn pq_put_1k(b: &mut Bencher) {
     let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    let n = 1_000_usize;
     b.iter(|| {
-        let n = 1_000_usize;
         (0..n).for_each(|i| { pq.put(i, i * 2); });
     });
 }
@@ -29,8 +29,8 @@ fn pq_put_1k(b: &mut Bencher) {
 /// Benchmark putting 10k elements
 fn pq_put_10k(b: &mut Bencher) {
     let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    let n = 10_000_usize;
     b.iter(|| {
-        let n = 10_000_usize;
         (0..n).for_each(|i| { pq.put(i, i * 2); });
     });
 }
@@ -38,8 +38,8 @@ fn pq_put_10k(b: &mut Bencher) {
 /// Benchmark putting 100k elements
 fn pq_put_100k(b: &mut Bencher) {
     let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    let n = 100_000_usize;
     b.iter(|| {
-        let n = 100_000_usize;
         (0..n).for_each(|i| { pq.put(i, i * 2); });
     });
 }
@@ -47,8 +47,8 @@ fn pq_put_100k(b: &mut Bencher) {
 /// Benchmark putting 1mil elements
 fn pq_put_1mil(b: &mut Bencher) {
     let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
+    let n = 1_000_000_usize;
     b.iter(|| {
-        let n = 1_000_000_usize;
         (0..n).for_each(|i| { pq.put(i, i * 2); });
     });
 }
@@ -120,6 +120,8 @@ fn pq_pop_1mil(b: &mut Bencher) {
         (0..n).for_each(|_| { pq.pop(); });
     });
 }
+
+
 
 benchmark_group!(
     benches,

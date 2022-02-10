@@ -3,7 +3,7 @@ use std::ptr;
 use std::marker;
 use std::alloc;
 
-const INITIAL_CAPACITY: usize = 10;
+const INITIAL_CAPACITY: usize = 7;
 pub const MAX_ZST_CAPACITY: usize = 1 << (usize::BITS - 1);
 pub const MIN_CAPACITY: usize = 4;
 
@@ -55,7 +55,7 @@ impl<S, T> RawPQ<S,T> {
             0 => (INITIAL_CAPACITY,
                 alloc::Layout::array::<(S, T)>(INITIAL_CAPACITY).unwrap()),
             _ => {
-                let new_cap = 3 * self.cap;
+                let new_cap = 2 * self.cap;
                 let new_layout = alloc::Layout::array::<(S, T)>(new_cap)
                                     .unwrap();
                 (new_cap, new_layout)
@@ -75,6 +75,23 @@ impl<S, T> RawPQ<S,T> {
                     alloc::realloc(old_ptr, old_layout, new_layout.size())
                 }
             }
+        };
+
+        self.ptr = match ptr::NonNull::new(new_ptr as *mut (S, T)) {
+            Some(p) => p,
+            None => alloc::handle_alloc_error(new_layout),
+        };
+        self.cap = new_cap;
+    }
+
+    pub fn shrink(&mut self) {
+        let old_layout = alloc::Layout::array::<(S, T)>(self.cap).unwrap();
+        let old_ptr = self.ptr.as_ptr() as *mut u8;
+        let new_cap = self.cap / 2;
+        let new_layout = alloc::Layout::array::<(S, T)>(new_cap).unwrap();
+
+        let new_ptr = unsafe {
+            alloc::realloc(old_ptr, old_layout, new_layout.size())
         };
 
         self.ptr = match ptr::NonNull::new(new_ptr as *mut (S, T)) {
