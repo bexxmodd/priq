@@ -13,6 +13,8 @@ license = "MIT"
 categories = ["data-structure", "priority-queue", "binary-heap"]
 keywords = ["priority", "queue", "data-structure"]
 
+exclude = [ "benches/bench_bheap.rs", ]
+
 [lib]
 name = "priq"
 path = "src/priq.rs"
