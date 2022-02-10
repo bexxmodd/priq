@@ -56,7 +56,7 @@ guarantees that the top node will always be of minimum value.
                                                                              
 You can initialize an empty `PriorityQueue` and later add items:
                                                                              
-```
+```Rust
 use priq::priq::PriorityQueue;
                                                                              
 let pq: PriorityQueue<usize, String> = PriorityQueue::new();
@@ -64,7 +64,7 @@ let pq: PriorityQueue<usize, String> = PriorityQueue::new();
                                                                              
 Or you can _heapify_ a `Vec` and/or a `slice`:
                                                                              
-```
+```Rust
 use priq::priq::PriorityQueue;
                                                                              
 let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
@@ -77,17 +77,12 @@ top element in the queue. The stored structure of the elements is a balanced
 tree realized using an array with a contiguous memory location. This allows
 maintaining a proper parent-child relationship between put-ed items.
                                                                              
-[`put`]: PriorityQueue::put
-[`peek`]: PriorityQueue::peek
-[`pop`]: PriorityQueue::pop
-                                                                             
-                                                                             
 Runtime complexity with Big-O Notation:
 
 | method    | Time Complexity |
 |-----------|-----------------|
 | [`put`]   | _O(log(n))_     |
-| [`pop`]   | _O(long(n))_    |
+| [`pop`]   | _O(log(n))_     |
 | [`peek`]  | _O(1)_          |
                                                                              
 You can also iterate over elements using for loop but the returned slice 
@@ -117,3 +112,21 @@ assert_eq!(pq.pop().unwrap().1, "Z");
 ```
 
 ## Performance
+
+This are the benchmark results for `priq::PriorityQueue`:
+
+
+|bench name | median | nanosecs | std.dev |
+|-----|-------:|:----------:|:--------|
+| pq_pop_100      |          148| ns/iter| (+/- 3) |
+| pq_pop_100k     |      297,467| ns/iter| (+/- 24,467) |
+| pq_pop_10k      |       14,390| ns/iter| (+/- 988) |
+| pq_pop_1k       |        1,641| ns/iter| (+/- 24) |
+| pq_pop_1mil     |   16,569,414| ns/iter| (+/- 1,185,927) |
+| pq_put_100      |          491| ns/iter| (+/- 6) |
+| pq_put_100k     |      809,884| ns/iter| (+/- 60,207) |
+| pq_put_100k_wcap|      788,107| ns/iter| (+/- 67,312) |
+| pq_put_10k      |       84,108| ns/iter| (+/- 3,010) |
+| pq_put_1k       |        4,699| ns/iter| (+/- 155) |
+| pq_put_1mil     |    6,993,994| ns/iter| (+/- 664,971) |
+| pq_put_1mil_wcap|    7,248,213| ns/iter| (+/- 643,994) |

@@ -1,6 +1,10 @@
+#![feature(test)]
+
+use priq::PriorityQueue;
+
 use std::cmp::Reverse;
 use rand::{seq::SliceRandom, thread_rng};
-use priq::priq::PriorityQueue;
+
 
 #[test]
 fn pq_base() {
@@ -169,3 +173,4 @@ fn pq_from_slice() {
     assert_eq!(11, pq.pop().unwrap().1);
     assert_eq!(44, pq.pop().unwrap().1);
 }
+

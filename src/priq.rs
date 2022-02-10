@@ -24,6 +24,9 @@
 //! 4 - Easy to use!
 //!
 //! You can read more about this crate on [my blog](https://www.bexxmodd.com)
+//!
+
+extern crate rand;
 
 use std::mem;
 use std::ptr;
@@ -32,7 +35,8 @@ use std::marker;
 use std::ops::{Deref, DerefMut};
 use std::convert::From;
 
-use crate::rawpq::{self, RawPQ};
+mod rawpq;
+use rawpq::RawPQ;
 
 /// A Min-Max Heap with designated arguments for `score` and associated `item`!
 ///
@@ -62,7 +66,7 @@ use crate::rawpq::{self, RawPQ};
 /// You can initialize an empty `PriorityQueue` and later add items:
 ///
 /// ```
-/// use priq::priq::PriorityQueue;
+/// use priq::PriorityQueue;
 ///
 /// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
@@ -70,7 +74,7 @@ use crate::rawpq::{self, RawPQ};
 /// Or you can _heapify_ a `Vec` and/or a `slice`:
 ///
 /// ```
-/// use priq::priq::PriorityQueue;
+/// use priq::PriorityQueue;
 ///
 /// let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
 /// let pq_from_slice = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
@@ -113,7 +117,7 @@ use crate::rawpq::{self, RawPQ};
 ///
 /// ```
 /// use std::cmp::Reverse;
-/// use priq::priq::PriorityQueue;
+/// use priq::PriorityQueue;
 ///
 /// let mut pq: PriorityQueue<Reverse<u8>, String> = PriorityQueue::new();
 /// pq.put(Reverse(26), "Z".to_string());
@@ -140,7 +144,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let pq: PriorityQueue<f32, String> = PriorityQueue::new();
     /// ```
@@ -161,7 +165,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let pq: PriorityQueue<usize, usize> = PriorityQueue::with_capacity(100);
     /// ```
@@ -179,7 +183,7 @@ where
     /// # Examples
     ///
     /// ```
-    ///use priq::priq::PriorityQueue;
+    ///use priq::PriorityQueue;
     ///
     /// let mut pq: PriorityQueue<usize, String> = PriorityQueue::new();
     /// pq.put(1, "Velkhana".to_string());
@@ -240,7 +244,7 @@ where
     /// # Examples
     ///
     /// ```
-    ///use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
     /// pq.put(2, String::from("Odo"));
@@ -311,7 +315,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     /// 
     /// let mut pq: PriorityQueue<u8, String> = PriorityQueue::new();
     /// assert!(pq.peek().is_none());
@@ -343,7 +347,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
     /// assert_eq!(0, pq.len());
@@ -360,7 +364,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
 
     /// let mut pq: PriorityQueue<usize, usize> = PriorityQueue::new();
     /// assert!(pq.is_empty());
@@ -524,7 +528,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let vec = vec![(5, 55), (4, 44), (2, 22), (3, 33)];
     /// let mut pq = PriorityQueue::from(vec);
@@ -559,7 +563,7 @@ where
     /// # Examples
     ///
     /// ```
-    /// use priq::priq::PriorityQueue;
+    /// use priq::PriorityQueue;
     ///
     /// let pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
     /// assert_eq!(3, pq.len());

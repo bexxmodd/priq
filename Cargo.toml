@@ -3,7 +3,29 @@ name = "priq"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Beka M. <bexx.modd@gmail.com>"]
+description = "Array implementation of the min/max heap"
+documentation = ""
+readme = "README.md"
+
+license = "MIT"
+categories = ["data-structure", "priority-queue", "binary-heap"]
+keywords = ["priority", "queue", "data-structure"]
+
+[lib]
+name = "priq"
+path = "src/priq.rs"
+test = true
+doctest = true
+bench = false 
+crate-type = ["lib"]
+
+[[bench]]
+name = "bench_priq"
+harness = false
+
+[dev-dependencies]
+bencher = "0.1.*"
 
 [dependencies]
 rand = "*"
