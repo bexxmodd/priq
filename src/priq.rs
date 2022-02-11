@@ -6,22 +6,22 @@
 //! other binary heap implementations currently available:
 //!
 //! 1 - Allows data ordering to scores with `PartialOrd`.
-//!     - Every other min-max heap requires [total ordering](https://bit.ly/3GCWvYL) 
+//!     * Every other min-max heap requires [total ordering](https://bit.ly/3GCWvYL) 
 //!     of scores (e.g. should implement `Ord` trait). This can be an issue, 
 //!     for example, when you want to order items based on a float scores, 
 //!     which doesn't implement `Ord` trait.
-//!     - Because of partial ordering, non-comparable values are thrown in 
+//!     * Because of partial ordering, non-comparable values are thrown in 
 //!     the end of the queue. One will see non-comparable values only after all 
 //!     the comparable elements have been `pop`-ed.
-//!     - You can read about Rust's implementation or `Ord`, `PartialOrd` and 
+//!     * You can read about Rust's implementation or `Ord`, `PartialOrd` and 
 //!     what's the different [here](https://bit.ly/3J7NwQI)
 //!
 //! 2 - Separation of score and item you wish to store.
-//!     - This frees enforcement for associated items to implement any ordering.
-//!     - Makes easier to evaluate items' order.
+//!     * This frees enforcement for associated items to implement any ordering.
+//!     * Makes easier to evaluate items' order.
 //!
 //! 3 - Equal scoring items are stored at first available free space.
-//!     - This gives performance boost for large number of entries.
+//!     * This gives performance boost for large number of entries.
 //!
 //! 4 - Easy to use!
 //!
