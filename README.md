@@ -36,11 +36,11 @@ A Min-Max Heap with designated arguments for `score` and associated `item`!
 A `Default` implementation is a Min-Heap where the top node (root) is the 
 lowest scoring element:
 
-<center><p>10<p></center>
-<center><p>/&emsp;&ensp;\</p></center>
-<center><p>58&emsp;&emsp;70</p></center>
-<center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-<center><p>80&emsp;&ensp;92&emsp;97&emsp;&ensp;99</p></center>
+                        10
+                       /  \
+                    58      70
+                   /  \    /  \
+                 80   92  97   99
 
 > The value of Parent Node is small than Child Node.
 
