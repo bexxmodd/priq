@@ -181,6 +181,7 @@ fn pq_clear() {
     pq.put(2, String::from("Ori"));
     pq.put(3, String::from("Sami"));
     pq.put(4, String::from("Otxi"));
+    assert!(!pq.is_empty());
     pq.clear();
     assert!(pq.is_empty());
 }

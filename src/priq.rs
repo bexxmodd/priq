@@ -44,11 +44,14 @@ use rawpq::RawPQ;
 /// A `Default` implementation is a Min-Heap where the top node (root) is the 
 /// lowest scoring element:
 ///
-/// <center><p>10<p></center>
-/// <center><p>/&emsp;&ensp;\</p></center>
-/// <center><p>58&emsp;&emsp;70</p></center>
-/// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-/// <center><p>80&emsp;&ensp;92&emsp;97&emsp;&ensp;99</p></center>
+/// ```text
+///               10
+///             /    \
+///           58      70
+///          /  \    /  \
+///         80  92  97  99
+///
+/// ```
 ///
 /// > The value of Parent Node is small than Child Node.
 ///
@@ -72,13 +75,26 @@ use rawpq::RawPQ;
 /// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
 ///
-/// Or you can _heapify_ a `Vec` and/or a `slice`:
+/// You can _heapify_ a `Vec` and/or a `slice`:
 ///
 /// ```
 /// use priq::PriorityQueue;
 ///
 /// let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
 /// let pq_from_slice = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+/// ```
+///
+/// You can build priority queue from any iterable and collect elements.
+///
+/// ```
+/// use priq::PriorityQueue;
+/// 
+/// // this will yield: (1, 2), (2, 4), (3, 6), (4, 8)
+/// let pq: PriorityQueue<_, _> = (1..5).into_iter()
+///                                     .map(|i| (i, i + i))
+///                                     .collect();
+/// assert_eq!(4, pq.len());
+/// assert_eq!(1, pq.peek().unwrap().0);
 /// ```
 ///
 /// # Partial Ordering
@@ -239,27 +255,15 @@ where
     /// For example, we have a tree with scores **[2, 3, 4, 6, 9, 5, 4]** and 
     /// we want to `put` an element with a score of ***1***:
     ///
-    /// <center><p>2<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>3&emsp;&emsp;&emsp;4</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;X&emsp;<-- 1&emsp;&emsp;&emsp;</p></center>
+    /// ```text
+    ///      2                          2                          X <- 1              
+    ///    /   \                      /   \                      /   \
+    ///   3     4                    3     X <- 1               3     2
+    ///  / \   / \                  / \   / \                  / \   / \
+    /// 6   9 5   X <- 1           6   9 5   4                6   9 5   4
     ///
-    /// ---------------------------------------------------------------------- 
-    ///
-    /// <center><p>2<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;3&emsp;&emsp;&emsp;X&emsp;<-- 1&emsp;&emsp;&emsp;</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-    /// <center><p>6&emsp;&emsp;9&emsp;5&emsp;&emsp;4</p></center>
-    ///
-    /// ---------------------------------------------------------------------- 
-    ///
-    /// <center><p>&emsp;&emsp;&emsp;X&emsp;<-- 1<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-    /// <center><p>6&emsp;&emsp;9&emsp;5&emsp;&emsp;4</p></center>
+    ///    step 1.                    step 2.                    step 3.
+    /// ```
     ///
     /// On a `PriorityQueue` with `len == 7` to `put` a new element it made 
     /// three operations, from the last position to the top (worst case).
@@ -303,27 +307,15 @@ where
     /// For example, we have a tree with scores **[1, 3, 2, 6, 9, 5, 4]**. 
     /// After we `pop` top element we get following movement:
     ///
-    /// <center><p>&emsp;&emsp;&emsp;O&emsp;--> 1<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;\</p></center>
-    /// <center><p>&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;4&emsp;<<</p></center>
+    /// ```text
+    ///      o -> 1                     4 <<                      2 <- new top
+    ///    /   \                      /   \                     /   \
+    ///   3     2                    3     2                   3     4 <<
+    ///  / \   / \                  / \   /                   / \   / 
+    /// 6   9 5   4 <<             6   9 5                   6   9 5  
     ///
-    /// ----------------------------------------------------------------------
-    ///
-    /// <center><p>&emsp;&emsp;4&emsp;<<<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>3&emsp;&emsp;&emsp;2</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;</p></center>
-    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p></center>
-    ///
-    /// ---------------------------------------------------------------------- 
-    ///
-    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;2&emsp;<-- new top<p></center>
-    /// <center><p>/&emsp;&emsp;\</p></center>
-    /// <center><p>&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;3&emsp;&emsp;&emsp;4&emsp;<<&emsp;&emsp;&emsp;&emsp;</p></center>
-    /// <center><p>/&emsp;\&emsp;&emsp;/&emsp;</p></center>
-    /// <center><p>&ensp;&emsp;&emsp;&emsp;&emsp;&emsp;6&emsp;&emsp;9&emsp;5&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;&emsp;</p></center>
+    ///    step 1.                    step 2.                    step 3.
+    /// ```
     ///
     /// Parent-child relationship balanced itself from top to down and **2** 
     /// became a new top (prioritized) element.
@@ -449,11 +441,10 @@ where
     /// assert!(pq.is_empty());
     /// ```
     pub fn drain(&mut self) -> Drain<S, T> {
-        let iter = unsafe { RawPQIter::new(&self) };
         self.len = 0;
         Drain {
             pq: marker::PhantomData,
-            iter,
+            iter: unsafe { RawPQIter::new(self) },
         }
     }
 
