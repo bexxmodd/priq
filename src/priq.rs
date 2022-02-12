@@ -657,6 +657,50 @@ where
     }
 }
 
+impl<S, T> FromIterator<(S, T)> for PriorityQueue<S, T>
+where 
+    S: PartialOrd
+{
+    /// Or you can create `PriorityQueue` from any iterable collection. This 
+    /// also allows to use `collect` method to collect iterable elements into 
+    /// a `PriorityQueue`. This allows to build a PriorityQueuety collection 
+    /// through `into_iter`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// // build an iterator
+    /// let iter = (0..5).into_iter()
+    ///                  .map(|i| (i, i * 2));
+    /// 
+    /// // create a priority queue from it
+    /// let pq = PriorityQueue::from_iter(iter);
+    ///
+    /// assert_eq!(5, pq.len());
+    /// assert_eq!(0, pq.peek().unwrap().1);
+    /// ```
+    ///
+    /// Building priority queue while iterating over values with `collect`
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let pq: PriorityQueue<_, _> = (1..6).into_iter()
+    ///                                     .map(|i| (i, i + i))
+    ///                                     .collect();
+    /// assert_eq!(5, pq.len());
+    /// assert_eq!(1, pq.peek().unwrap().0);
+    /// ```
+    fn from_iter<I: IntoIterator<Item = (S, T)>>(iter: I) -> Self {
+        let mut pq_ = PriorityQueue::new();
+        iter.into_iter()
+            .for_each(|(s, e)| pq_.put(s, e));
+        pq_
+    }
+}
+
 pub struct IntoIter<S, T> {
     _buf: RawPQ<S, T>,
     iter: RawPQIter<S, T>,

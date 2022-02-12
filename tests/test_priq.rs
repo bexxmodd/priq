@@ -220,3 +220,21 @@ fn pq_with_nan() {
     assert!(0 > pq.pop().unwrap().1);
 }
 
+#[test]
+fn pq_build_from_iter() {
+    let iter = (0..5).into_iter()
+                     .map(|i| (i, i * 2));
+    let pq = PriorityQueue::from_iter(iter);
+    assert_eq!(5, pq.len());
+    assert_eq!(0, pq.peek().unwrap().1);
+}
+
+#[test]
+fn pq_build_and_collect() {
+    let pq: PriorityQueue<usize, usize> = (1..6).into_iter()
+                                                .map(|i| (i, i + i))
+                                                .collect();
+    assert_eq!(5, pq.len());
+    assert_eq!(1, pq.peek().unwrap().0);
+}
+
