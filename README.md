@@ -29,7 +29,7 @@ other binary heap implementations currently available:
 
 You can read more about this crate on [my blog](https://www.bexxmodd.com)
 
-## Implementation
+# Implementation
 
 A Min-Max Heap with designated arguments for `score` and associated `item`!
 
@@ -57,7 +57,7 @@ guarantees that the top node will always be of minimum value.
 
 You can initialize an empty `PriorityQueue` and later add items:
 
-```
+```rust
 use priq::PriorityQueue;
 
 // create queue with `usize` key and `String` elements
@@ -66,7 +66,7 @@ let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 
 Or you can _heapify_ a `Vec` and/or a `slice`:
 
-```
+```rust
 use priq::PriorityQueue;
 
 let pq_from_vec = PriorityQueue::from(vec![(5, 55), (1, 11), (4, 44)]);
@@ -79,7 +79,7 @@ Because `priq` allows `score` arguments that only implement `PartialOrd`,
 elements that can't be compared are evaluated and are put in the back of
 the queue:
 
-```
+```rust
 use priq::PriorityQueue;
 
 let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
@@ -145,7 +145,7 @@ implementation can be used to have custom prioritization logic.
 
 # Example
 
-```
+```rust
 use priq::PriorityQueue;
 use std::cmp::Reverse;
 
@@ -155,6 +155,42 @@ pq.put(Reverse(26), "Z".to_string());
 pq.put(Reverse(1), "A".to_string());
 
 assert_eq!(pq.pop().unwrap().1, "Z");
+```
+# Merging and Combining 
+
+You can merge another priority queue to this one. Right hand side priority
+queue will be drained into the left hand side priority queue.
+
+# Examples
+
+```rust
+use priq::PriorityQueue;
+
+let mut pq1 = PriorityQueue::from([(5, 55), (6, 66), (3, 33), (2, 22)]);
+let mut pq2 = PriorityQueue::from([(4, 44), (1, 11)]);
+
+pq1.merge(&mut pq2);
+// at this point `pq2` is empty
+
+assert_eq!(6, pq1.len());
+assert_eq!(11, pq1.peek().unwrap().1);
+```
+
+You can also use `+` operator to combine two priority queues. Operands will
+be intact. New priority queue will be build from cloning and merging them.
+
+# Example
+
+```rust
+use priq::PriorityQueue;
+
+let pq1 = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+let pq2 = PriorityQueue::from([(8, 44), (1, 22)]);
+
+let res = pq1 + pq2;
+
+assert_eq!(6, res.len());
+assert_eq!(11, res.peek().unwrap().1);
 ```
 
 ## Performance
@@ -192,3 +228,7 @@ How it compares to `std::collections::BinaryHeap`:
 | bh_push_10k |      92,807 | ns/iter | (+/- 7,930)
 | bh_push_1k  |       8,606 | ns/iter | (+/- 639)
 | bh_push_1mil|  12,946,815 | ns/iter | (+/- 900,347)
+
+
+------------
+Project is distributed under the MIT license. Please see the `LICENSE` for more information.

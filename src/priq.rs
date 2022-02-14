@@ -73,7 +73,7 @@ use rawpq::RawPQ;
 /// ```
 /// use priq::PriorityQueue;
 ///
-/// // create queue with `usize` key and `String` elements
+/// // create queue with `usize` score and `String` elements
 /// let pq: PriorityQueue<usize, String> = PriorityQueue::new();
 /// ```
 ///
