@@ -409,17 +409,6 @@ where
         self.len == 0
     }
 
-    /// TODO: add docs for this one
-    pub fn into_ter(self) -> IntoIter<S, T> {
-        unsafe {
-            let iter = RawPQIter::new(&self);
-            let _buf = ptr::read(&self.data);
-            mem::forget(self);
-
-            IntoIter { iter, _buf }
-        }
-    }
-
     /// Remove all the elements from `PriorityQueue`
     ///
     /// # Example
@@ -480,6 +469,11 @@ where
     /// assert_eq!(44, res.pop().unwrap().1);
     /// assert_eq!(11, res.pop().unwrap().1);
     /// ```
+    ///
+    /// # Time
+    /// 
+    /// This method drains priority queue into vector and sorts in 
+    /// ***O(log(n))*** time.
     pub fn into_sorted_vec(mut self) -> Vec<(S, T)> {
         let mut res: Vec<(S, T)> = self.drain()
                                        .collect();

@@ -242,3 +242,13 @@ fn pq_build_and_collect() {
     assert_eq!(1, pq.peek().unwrap().0);
 }
 
+#[test]
+fn pq_into_ter() {
+    let pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    let res: PriorityQueue<u8, u8> = pq.into_iter()
+                                       .filter(|(s, _)| s > &2)
+                                       .collect();
+    assert_eq!(2, res.len());
+    assert_eq!(44, res.peek().unwrap().1);
+}
+
