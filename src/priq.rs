@@ -133,11 +133,6 @@ use rawpq::RawPQ;
 /// tree realized using an array with a contiguous memory location. This allows
 /// maintaining a proper parent-child relationship between put-ed items.
 ///
-/// [`put`]: PriorityQueue::put
-/// [`peek`]: PriorityQueue::peek
-/// [`pop`]: PriorityQueue::pop
-///
-///
 /// Runtime complexity with Big-O Notation:
 /// 
 /// | method    | Time Complexity |
@@ -165,9 +160,6 @@ use rawpq::RawPQ;
 /// If instead of Min-Heap you want to have Max-Heap, where the highest-scoring 
 /// element is on top you can pass score using [`Reverse`] or a custom [`Ord`] 
 /// implementation can be used to have custom prioritization logic.
-///
-/// [`BinaryHeap`]: std::collections::BinaryHeap
-/// [`Reverse`]: std::cmp::Reverse
 ///
 /// # Example
 ///
@@ -197,9 +189,9 @@ use rawpq::RawPQ;
 /// let mut pq2 = PriorityQueue::from([(4, 44), (1, 11)]);
 ///
 /// pq1.merge(&mut pq2);
+/// // at this point `pq2` is empty
 ///
 /// assert_eq!(6, pq1.len());
-/// // assert_eq!(2, pq2.len()); panics! `pq2` will be empty
 /// assert_eq!(11, pq1.peek().unwrap().1);
 /// ```
 ///
@@ -219,6 +211,13 @@ use rawpq::RawPQ;
 /// assert_eq!(6, res.len());
 /// assert_eq!(11, res.peek().unwrap().1);
 /// ```
+///
+/// [`BinaryHeap`]: std::collections::BinaryHeap
+/// [`Reverse`]: std::cmp::Reverse
+/// [`put`]: PriorityQueue::put
+/// [`peek`]: PriorityQueue::peek
+/// [`pop`]: PriorityQueue::pop
+///
 #[derive(Debug)]
 pub struct PriorityQueue<S, T> 
 where
@@ -393,6 +392,35 @@ where
                 Some(_top)
             }
         } else { None }
+    }
+
+    /// If you are sure that priority queue is NOT empty you can call `try_pop`
+    /// to get prioritized element without a need to unwrap it. If the queue is 
+    /// empty this method will panic.
+    ///
+    /// # Examples
+    ///
+    /// ```should_panic
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::<usize, usize>::new();
+    /// pq.try_pop();
+    /// ```
+    ///
+    /// But when priority queue is not empty it removes one layer of unwrapping
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from([(4, -23), (76, 2)]);
+    /// assert_eq!(-23, pq.try_pop().1);
+    /// ```
+    pub fn try_pop(&mut self) -> (S, T) {
+        if self.is_empty() {
+            panic!("Can't `pop` from an empty priority queue");
+        } else {
+            self.pop().unwrap()
+        }
     }
 
     /// Check what is a top element in `PriorityQueue`, by getting the reference.
@@ -635,6 +663,27 @@ where
         }
     }
 
+    /// Merge second priority queue into this one. Values from the right hand 
+    /// side queue will be drained into the left hand side queue, leaving 
+    /// right hand side queue empty.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq1 = PriorityQueue::from([(5, 55), (1, 11), (3, 33), (2, 22)]);
+    /// let mut pq2 = PriorityQueue::from([(4, 44), (6, 66)]);
+    /// pq1.merge(&mut pq2);
+    ///
+    /// assert_eq!(6, pq1.len());
+    /// assert!(pq2.is_empty()); // rhs queue's elements are moved
+    ///
+    /// // assert that added elements are properly placed
+    /// (1..=6).for_each(|i| {
+    ///     assert_eq!(i * 11, pq1.pop().unwrap().1); 
+    ///     });
+    /// ```
     pub fn merge(&mut self, pq: &mut PriorityQueue<S ,T>) {
         while !pq.is_empty() {
             let elem = pq.pop().unwrap();
