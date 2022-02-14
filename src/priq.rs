@@ -30,17 +30,13 @@
 
 extern crate rand;
 
-use std::cmp::Ordering;
 use std::mem;
-use std::ops::Add;
-use std::ops::Range;
-use std::ops::RangeBounds;
 use std::ptr;
-use std::cmp;
-use std::marker;
-use std::ops::{Deref, DerefMut};
-use std::convert::From;
 use std::slice;
+use std::marker::PhantomData;
+use std::convert::From;
+use std::cmp::{self, Ordering};
+use std::ops::{Add, Deref, DerefMut, Range, RangeBounds};
 
 mod rawpq;
 use rawpq::RawPQ;
@@ -185,6 +181,43 @@ use rawpq::RawPQ;
 /// pq.put(Reverse(1), "A".to_string());
 ///
 /// assert_eq!(pq.pop().unwrap().1, "Z");
+/// ```
+///
+/// # Merging and Combining 
+///
+/// You can merge another priority queue to this one. Right hand side priority
+/// queue will be drained into the left hand side priority queue.
+///
+/// # Examples
+///
+/// ```
+/// use priq::PriorityQueue;
+///
+/// let mut pq1 = PriorityQueue::from([(5, 55), (6, 66), (3, 33), (2, 22)]);
+/// let mut pq2 = PriorityQueue::from([(4, 44), (1, 11)]);
+///
+/// pq1.merge(&mut pq2);
+///
+/// assert_eq!(6, pq1.len());
+/// // assert_eq!(2, pq2.len()); panics! `pq2` will be empty
+/// assert_eq!(11, pq1.peek().unwrap().1);
+/// ```
+///
+/// You can also use `+` operator to combine two priority queues. Operands will
+/// be intact. New priority queue will be build from cloning and merging them.
+///
+/// # Example
+///
+/// ```
+/// use priq::PriorityQueue;
+/// 
+/// let pq1 = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+/// let pq2 = PriorityQueue::from([(8, 44), (1, 22)]);
+///
+/// let res = pq1 + pq2;
+///
+/// assert_eq!(6, res.len());
+/// assert_eq!(11, res.peek().unwrap().1);
 /// ```
 #[derive(Debug)]
 pub struct PriorityQueue<S, T> 
@@ -335,7 +368,6 @@ where
     /// # Time Complexity
     ///
     /// Worst case is ***O(log(n))***.
-    ///
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
             let last_ = self.len - 1;
@@ -386,7 +418,6 @@ where
     /// # Time Complexity
     ///
     /// `peek`-ing is done in a constant time ***O(1)***
-    ///
     pub fn peek(&self) -> Option<&(S, T)> {
         if !self.is_empty() {
             Some(&self[0])
@@ -487,7 +518,7 @@ where
             self.len = 0;
 
             Drain {
-                pq: marker::PhantomData,
+                pq: PhantomData,
                 iter,
             }
         }
@@ -591,11 +622,10 @@ where
         }
 
         // SAFETY: concerns are none for this because:
-        //
         //    * `len` passed to the method is less than self.len so no invalid 
-        //        slice can be created.
+        //       slice can be created.
         //    * self.len is reduced to a new size before `drop_in_place` is called.
-        //        no double free error in case `drop_in_place` panics.
+        //       no double free error in case `drop_in_place` panics.
         unsafe {
             let remaining = self.len - len;
             let s_ = ptr::slice_from_raw_parts_mut(
@@ -835,6 +865,7 @@ where
 {
     fn clone(&self) -> Self {
         let mut dst = PriorityQueue::<S, T>::with_capacity(self.len + 1);
+
         // SAFETY: precondition ensures the source is aligned and valid,
         //      and creating `with_capacity` ensures there is enough memory
         //      allocated for a copy priority queue.
@@ -842,8 +873,7 @@ where
             ptr::copy(self.ptr(), dst.as_mut_ptr(), self.len);
         }
 
-        // SAFETY: we created cloned priority queue with this capacity 
-        //      so we update `len` of it.
+        // SAFETY: we cloned queue with this capacity so we update its `len` too.
         dst.len = self.len;
         dst
     }
@@ -953,7 +983,7 @@ pub struct Drain<'a, S: 'a, T: 'a>
 where 
     S: PartialOrd,
 {
-    pq: marker::PhantomData<&'a mut PriorityQueue<S, T>>,
+    pq: PhantomData<&'a mut PriorityQueue<S, T>>,
     iter: RawPQIter<S, T>,
 }
 
