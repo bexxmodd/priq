@@ -1,3 +1,4 @@
+#![feature(slice_range)]
 //! Priority queue (min/max heap) using raw binary heap.
 //!
 //! `PriorityQueue` is built using raw array for efficient performance.
@@ -29,12 +30,16 @@
 
 extern crate rand;
 
+use std::cmp::Ordering;
 use std::mem;
+use std::ops::Range;
+use std::ops::RangeBounds;
 use std::ptr;
 use std::cmp;
 use std::marker;
 use std::ops::{Deref, DerefMut};
 use std::convert::From;
+use std::slice;
 
 mod rawpq;
 use rawpq::RawPQ;
@@ -388,6 +393,7 @@ where
     /// pq.put(1, 99);
     /// assert_eq!(1, pq.len());
     /// ```
+    #[inline]
     pub fn len(&self) -> usize {
         self.len
     }
@@ -423,30 +429,48 @@ where
     /// assert!(pq.is_empty());
     /// ```
     pub fn clear(&mut self) {
-        self.drain();
+        self.drain(..);
     }
 
     /// Clears the priority queue, returning iterator over the removed elements
-    /// returned items will NOT be in a sorted order.
+    /// returned items will NOT be in a sorted order. Method takes range as an 
+    /// argument.
     ///
     /// # Example
     ///
     /// ```
     /// use priq::PriorityQueue;
     ///
-    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (7, 77)]);
     /// assert!(!pq.is_empty());
     ///
-    /// for (s, e) in pq.drain() { println!("{}, {}", s, e) };
+    /// // drain everything starting from index 2 till the end.
+    /// let mut res: PriorityQueue<usize, usize> = pq.drain(2..).collect();
     /// assert!(pq.is_empty());
+    /// assert_eq!(2, res.len());
+    ///
+    /// // drain the remaining priority queue by giving it full range (..) arg.
+    /// res.drain(..);
+    /// assert!(res.is_empty());
     /// ```
-    pub fn drain(&mut self) -> Drain<S, T> {
-        let iter = unsafe { RawPQIter::new(self) };
-        self.len = 0;
+    pub fn drain<R>(&mut self, range: R) -> Drain<'_, S, T>
+    where 
+        R: RangeBounds<usize>,
+    {
+        let len = self.len();
+        let Range { start, end } = slice::range(range, ..len);
 
-        Drain {
-            pq: marker::PhantomData,
-            iter,
+        unsafe {
+            let range_slice = slice::from_raw_parts_mut(
+                self.as_mut_ptr().add(start), end - start);
+
+            let iter = RawPQIter::new(range_slice);
+            self.len = 0;
+
+            Drain {
+                pq: marker::PhantomData,
+                iter,
+            }
         }
     }
 
@@ -463,11 +487,34 @@ where
     /// let mut res = pq.into_sorted_vec(); 
     /// assert_eq!(3, res.len());
     ///
-    /// // we'll be `pop``-ing values from the back of the vector.
+    /// // we'll be `pop`-ing values from the back of the vector.
     /// // this means highest scoring will be all the way back into the `Vec`
     /// assert_eq!(55, res.pop().unwrap().1);
     /// assert_eq!(44, res.pop().unwrap().1);
     /// assert_eq!(11, res.pop().unwrap().1);
+    /// ```
+    ///
+    /// If priority queue has NAN values they will be sorted after all 
+    /// comparable scores without any particular order
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
+    /// pq.put(1.1, 10);
+    /// pq.put(f32::NAN, -1);
+    /// pq.put(2.2, 20);
+    /// pq.put(3.3, 30);
+    /// pq.put(f32::NAN, -3);
+    /// pq.put(4.4, 40);
+    /// let res = pq.into_sorted_vec();
+    ///
+    /// assert_eq!(10, res[0].1);
+    /// assert_eq!(20, res[1].1);
+    /// assert_eq!(30, res[2].1);
+    /// assert_eq!(40, res[3].1);
+    /// assert!(res[4].1 < 0 && res[4].1 > -4);
+    /// assert!(res[5].1 < 0 && res[5].1 > -4);
     /// ```
     ///
     /// # Time
@@ -475,11 +522,68 @@ where
     /// This method drains priority queue into vector and sorts in 
     /// ***O(log(n))*** time.
     pub fn into_sorted_vec(mut self) -> Vec<(S, T)> {
-        let mut res: Vec<(S, T)> = self.drain()
+        let mut res: Vec<(S, T)> = self.drain(..)
                                        .collect();
 
-        res.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
+        res.sort_by(|a, b| {
+            match a.0.partial_cmp(&b.0) {
+                Some(r) => r,
+                None => Ordering::Less,
+            }
+        });
         res
+    }
+
+    /// Reduce the length of a priority queue by keeping the first `len` 
+    /// elements and dropping the rest.
+    ///
+    /// If you pass `len` greater than the length of a priority queue this 
+    /// will have no effect.
+    ///
+    /// # Example
+    /// 
+    /// truncate to keep the first three elements of priority queue.
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from(
+    ///     [(5, 55), (1, 11), (4, 44), (2, 22), (7, 77), (8, 88)]
+    /// );
+    ///
+    /// pq.truncate(3);
+    /// assert_eq!(3, pq.len());
+    /// assert_eq!(11, pq.peek().unwrap().1);
+    /// ```
+    ///
+    /// If we try to truncate with `len` > the length of a priority queue:
+    ///
+    /// ```
+    /// use priq::PriorityQueue;
+    ///
+    /// let mut pq = PriorityQueue::from([(4, 44), (2, 22), (7, 77), (8, 88)]);
+    /// pq.truncate(5);
+    ///
+    /// assert_eq!(4, pq.len());
+    /// ```
+    pub fn truncate(&mut self, len: usize) {
+        if len > self.len {
+            return
+        }
+
+        // There are no SAFETY concerns for this because:
+        //
+        //  - `len` passed to the method is less than self.len so no invalid 
+        //      slice can be created
+        //  - self.len is reduced to a new size before `drop_in_place` is called.
+        //      no double free error in case `drop_in_place` panics.
+        unsafe {
+            let remaining = self.len - len;
+            let s_ = ptr::slice_from_raw_parts_mut(
+                self.as_mut_ptr().add(len), remaining);
+            self.len = len;
+            ptr::drop_in_place(s_);
+        }
     }
 
     /// Provides the raw pointer to the contiguous block of memory of data
@@ -748,7 +852,6 @@ struct RawPQIter<S, T> {
 
 impl<S, T> RawPQIter<S, T> {
     unsafe fn new(slice: &[(S, T)]) -> Self {
-        println!(" LENGTH :>> {}", slice.len());
         RawPQIter {
             start: slice.as_ptr(),
             end: if mem::size_of::<(S, T)>() == 0 {
