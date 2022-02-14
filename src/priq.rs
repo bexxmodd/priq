@@ -32,6 +32,7 @@ extern crate rand;
 
 use std::cmp::Ordering;
 use std::mem;
+use std::ops::Add;
 use std::ops::Range;
 use std::ops::RangeBounds;
 use std::ptr;
@@ -280,7 +281,13 @@ where
     pub fn put(&mut self, score: S, item: T) {
         if self.cap() == self.len { self.data.grow(); }
         self.len += 1;
-        unsafe { ptr::write(self.ptr().add(self.len - 1), (score, item)) };
+
+        // SAFETY: We're writing new element in the back of the array. We ensure
+        //      that this is safe by first checking if we have enough capacity 
+        //      allocated, and if not we grow it to accommodate new entries.
+        unsafe {
+            ptr::write(self.ptr().add(self.len - 1), (score, item))
+        };
         self.heapify_up(self.len - 1);
     }
 
@@ -332,21 +339,27 @@ where
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
             let last_ = self.len - 1;
+            // If any of the scores is uncomparable move it to the back
             if self.len > 1 && self[0].0.partial_cmp(&self[0].0).is_none() {
                 self.swap(0, last_);
             }
 
-            let _top = unsafe { ptr::read(self.ptr()) };
-            let _tmp = unsafe { ptr::read(self.ptr().add(self.len - 1)) };
-            unsafe { ptr::write(self.ptr(), _tmp) };
+            unsafe {
+                let _top = ptr::read(self.ptr());
+                let _tmp = ptr::read(self.ptr().add(self.len - 1));
+                
+                // SAFETY: this is safe because the last element will written
+                //      in-place of the first element in an allocated space.
+                ptr::write(self.ptr(), _tmp);
 
-            self.len -= 1;
-            
-            if self.len > 1 { self.heapify_down(0); }
-            if self.cap() > 10_000 && self.cap() / 4 >= self.len {
-                self.data.shrink();
+                self.len -= 1;
+                
+                if self.len > 1 { self.heapify_down(0); }
+                if self.cap() > 1_000 && self.cap() / 4 >= self.len {
+                    self.data.shrink();
+                }
+                Some(_top)
             }
-            Some(_top)
         } else { None }
     }
 
@@ -460,11 +473,17 @@ where
         let len = self.len();
         let Range { start, end } = slice::range(range, ..len);
 
+        // SAFETY: we are reading from row memory within a range from start to 
+        //      the `len` where `len` we know is within a memory space of this 
+        //      priority queue.
         unsafe {
             let range_slice = slice::from_raw_parts_mut(
                 self.as_mut_ptr().add(start), end - start);
 
             let iter = RawPQIter::new(range_slice);
+
+            // SAFETY: we set up `len` to zero so even if method panics, memory
+            //      leak will never happen.
             self.len = 0;
 
             Drain {
@@ -571,18 +590,25 @@ where
             return
         }
 
-        // There are no SAFETY concerns for this because:
+        // SAFETY: concerns are none for this because:
         //
-        //  - `len` passed to the method is less than self.len so no invalid 
-        //      slice can be created
-        //  - self.len is reduced to a new size before `drop_in_place` is called.
-        //      no double free error in case `drop_in_place` panics.
+        //    * `len` passed to the method is less than self.len so no invalid 
+        //        slice can be created.
+        //    * self.len is reduced to a new size before `drop_in_place` is called.
+        //        no double free error in case `drop_in_place` panics.
         unsafe {
             let remaining = self.len - len;
             let s_ = ptr::slice_from_raw_parts_mut(
                 self.as_mut_ptr().add(len), remaining);
             self.len = len;
             ptr::drop_in_place(s_);
+        }
+    }
+
+    pub fn merge(&mut self, pq: &mut PriorityQueue<S ,T>) {
+        while !pq.is_empty() {
+            let elem = pq.pop().unwrap();
+            self.put(elem.0, elem.1);
         }
     }
 
@@ -654,7 +680,6 @@ where
         if self.has_right(index) && self[_right].0 < self[min_].0 {
             min_ = _right;
         }
-
         if min_ != index {
             self.swap(index, min_);
             self.heapify_down(min_);
@@ -801,6 +826,39 @@ where
         iter.into_iter()
             .for_each(|(s, e)| pq_.put(s, e));
         pq_
+    }
+}
+
+impl<S, T> Clone for PriorityQueue<S, T>
+where 
+    S: PartialOrd
+{
+    fn clone(&self) -> Self {
+        let mut dst = PriorityQueue::<S, T>::with_capacity(self.len + 1);
+        // SAFETY: precondition ensures the source is aligned and valid,
+        //      and creating `with_capacity` ensures there is enough memory
+        //      allocated for a copy priority queue.
+        unsafe {
+            ptr::copy(self.ptr(), dst.as_mut_ptr(), self.len);
+        }
+
+        // SAFETY: we created cloned priority queue with this capacity 
+        //      so we update `len` of it.
+        dst.len = self.len;
+        dst
+    }
+}
+
+impl<S, T> Add for PriorityQueue<S, T>
+where 
+    S: PartialOrd
+{
+    type Output = Self;
+    fn add(self, rhs: Self) -> Self::Output {
+        let mut res: PriorityQueue<S, T> = self;
+        let mut rhs_ = rhs;
+        res.merge(&mut rhs_);
+        res
     }
 }
 
