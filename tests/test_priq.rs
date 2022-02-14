@@ -158,6 +158,21 @@ fn pq_pop_100000_items_unordered() {
 }
 
 #[test]
+#[should_panic]
+fn pq_try_pop_when_empty() {
+    let mut pq = PriorityQueue::<usize, usize>::new();
+    pq.try_pop();
+}
+
+#[test]
+fn pq_try_pop_base() {
+    let mut pq = PriorityQueue::<usize, usize>::new();
+    pq.put(4, 39);
+    assert_eq!(39, pq.try_pop().1);
+}
+
+
+#[test]
 fn pq_from_vec() {
     let vec = vec![(5, 55), (1, 11), (4, 44), (2, 22), (3, 33)];
     let mut pq = PriorityQueue::from(vec);
@@ -191,9 +206,24 @@ fn pq_drain() {
     let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
     assert!(!pq.is_empty());
     
-    for (s, e) in pq.drain() { assert!(s > 0 && e > 0) };
+    for (s, e) in pq.drain(..) { assert!(s > 0 && e > 0) };
     assert!(pq.is_empty());
 
+}
+
+#[test]
+fn pq_with_nan() {
+    let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
+    pq.put(1.1, 10);
+    pq.put(f32::NAN, -1);
+    pq.put(2.2, 20);
+    pq.put(3.3, 30);
+    pq.put(f32::NAN, -3);
+    pq.put(4.4, 40);
+    
+    (1..=4).for_each(|i| assert_eq!(i * 10, pq.pop().unwrap().1));
+    assert!(0 > pq.pop().unwrap().1);
+    assert!(0 > pq.pop().unwrap().1);
 }
 
 #[test]
@@ -210,7 +240,7 @@ fn pq_into_sorted_vec() {
 }
 
 #[test]
-fn pq_with_nan() {
+fn pq_into_sorted_vec_with_nan() {
     let mut pq: PriorityQueue<f32, isize> = PriorityQueue::new();
     pq.put(1.1, 10);
     pq.put(f32::NAN, -1);
@@ -218,10 +248,14 @@ fn pq_with_nan() {
     pq.put(3.3, 30);
     pq.put(f32::NAN, -3);
     pq.put(4.4, 40);
+    let res = pq.into_sorted_vec();
     
-    (1..=4).for_each(|i| assert_eq!(i * 10, pq.pop().unwrap().1));
-    assert!(0 > pq.pop().unwrap().1);
-    assert!(0 > pq.pop().unwrap().1);
+    assert_eq!(10, res[0].1);
+    assert_eq!(20, res[1].1);
+    assert_eq!(30, res[2].1);
+    assert_eq!(40, res[3].1);
+    assert!(res[4].1 < 0 && res[4].1 > -4);
+    assert!(res[5].1 < 0 && res[5].1 > -4);
 }
 
 #[test]
@@ -252,3 +286,61 @@ fn pq_into_ter() {
     assert_eq!(44, res.peek().unwrap().1);
 }
 
+#[test]
+fn pq_drain_slice() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    let res: PriorityQueue<usize, usize> = pq.drain(1..).collect();
+    assert_eq!(3, res.len());
+}
+
+#[test]
+fn pq_truncate_larger_len() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    pq.truncate(6);
+    assert_eq!(4, pq.len());
+}
+
+#[test]
+fn pq_truncate() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    pq.truncate(2);
+    assert_eq!(2, pq.len());
+    assert_eq!(1, pq.pop().unwrap().0);
+    assert_eq!(2, pq.pop().unwrap().0);
+    assert_eq!(None, pq.peek());
+}
+
+#[test]
+fn pq_truncate_clear() {
+    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    pq.truncate(0);
+    assert!(pq.is_empty());
+}
+
+#[test]
+fn pq_clone() {
+    let pq1 = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    let pq2 = pq1.clone();
+    assert_eq!(4, pq1.len());
+    assert_eq!(4, pq2.len());
+}
+
+#[test]
+fn pq_merge() {
+    let mut pq1 = PriorityQueue::from([(5, 55), (1, 11), (3, 33), (2, 22)]);
+    let mut pq2 = PriorityQueue::from([(4, 44), (6, 66)]);
+    pq1.merge(&mut pq2);
+
+    assert!(pq2.is_empty());
+    assert_eq!(6, pq1.len());
+    (1..=6).for_each(|i| { assert_eq!(i * 11, pq1.pop().unwrap().1); })
+}
+
+#[test]
+fn pq_add_to_pq() {
+    let pq1 = PriorityQueue::from([(5, 55), (1, 11), (4, 44), (2, 22)]);
+    let pq2 = PriorityQueue::from([(8, 44), (1, 22)]);
+    let res = pq1 + pq2;
+    assert_eq!(6, res.len());
+    assert_eq!(11, res.peek().unwrap().1);
+}
