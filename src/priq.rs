@@ -409,6 +409,17 @@ where
         self.len == 0
     }
 
+    /// TODO: add docs for this one
+    pub fn into_ter(self) -> IntoIter<S, T> {
+        unsafe {
+            let iter = RawPQIter::new(&self);
+            let _buf = ptr::read(&self.data);
+            mem::forget(self);
+
+            IntoIter { iter, _buf }
+        }
+    }
+
     /// Remove all the elements from `PriorityQueue`
     ///
     /// # Example
@@ -441,10 +452,12 @@ where
     /// assert!(pq.is_empty());
     /// ```
     pub fn drain(&mut self) -> Drain<S, T> {
+        let iter = unsafe { RawPQIter::new(self) };
         self.len = 0;
+
         Drain {
             pq: marker::PhantomData,
-            iter: unsafe { RawPQIter::new(self) },
+            iter,
         }
     }
 
@@ -456,21 +469,22 @@ where
     /// ```
     /// use priq::PriorityQueue;
     ///
-    /// let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    /// let pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
     ///
     /// let mut res = pq.into_sorted_vec(); 
-    ///
     /// assert_eq!(3, res.len());
+    ///
+    /// // we'll be `pop``-ing values from the back of the vector.
+    /// // this means highest scoring will be all the way back into the `Vec`
     /// assert_eq!(55, res.pop().unwrap().1);
     /// assert_eq!(44, res.pop().unwrap().1);
     /// assert_eq!(11, res.pop().unwrap().1);
     /// ```
-    pub fn into_sorted_vec(&mut self) -> Vec<(S, T)> {
-        let mut res = vec![];
-        while self.len > 0 {
-            let elem = self.pop().unwrap();
-            res.push(elem);
-        }
+    pub fn into_sorted_vec(mut self) -> Vec<(S, T)> {
+        let mut res: Vec<(S, T)> = self.drain()
+                                       .collect();
+
+        res.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap());
         res
     }
 
@@ -728,10 +742,7 @@ where
             let _buf = ptr::read(&self.data);
             mem::forget(self);
 
-            IntoIter {
-                iter,
-                _buf,
-            }
+            IntoIter { iter, _buf, }
         }
     }
 }
@@ -742,8 +753,8 @@ struct RawPQIter<S, T> {
 }
 
 impl<S, T> RawPQIter<S, T> {
-    #[allow(dead_code)]
     unsafe fn new(slice: &[(S, T)]) -> Self {
+        println!(" LENGTH :>> {}", slice.len());
         RawPQIter {
             start: slice.as_ptr(),
             end: if mem::size_of::<(S, T)>() == 0 {
@@ -759,7 +770,6 @@ impl<S, T> RawPQIter<S, T> {
 
 impl<S, T> Iterator for RawPQIter<S, T> {
     type Item = (S, T);
-
     fn next(&mut self) -> Option<Self::Item> {
         if self.start == self.end {
             None

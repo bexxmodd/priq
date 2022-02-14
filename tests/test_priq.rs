@@ -198,9 +198,12 @@ fn pq_drain() {
 
 #[test]
 fn pq_into_sorted_vec() {
-    let mut pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    let pq = PriorityQueue::from([(5, 55), (1, 11), (4, 44)]);
+    assert_eq!(3, pq.len());
+
     let mut res = pq.into_sorted_vec(); 
     assert_eq!(3, res.len());
+
     assert_eq!(55, res.pop().unwrap().1);
     assert_eq!(44, res.pop().unwrap().1);
     assert_eq!(11, res.pop().unwrap().1);
