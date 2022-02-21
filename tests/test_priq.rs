@@ -344,3 +344,26 @@ fn pq_add_to_pq() {
     assert_eq!(6, res.len());
     assert_eq!(11, res.peek().unwrap().1);
 }
+
+#[test]
+fn pq_high_number_of_nan() {
+    let mut pq = PriorityQueue::new();
+    pq.put(1f64, ());
+    pq.put(3f64, ());
+    pq.put(f64::NAN, ());
+    pq.put(f64::NAN, ());
+    println!("{:?}", pq.into_sorted_vec());
+    // assert_eq!(1f64, pq.try_pop().0);
+    // assert_eq!(3f64, pq.try_pop().0);
+}
+
+#[test]
+fn pq_points_as_scores() {
+    let mut pq = PriorityQueue::new();
+    pq.put((1, 2), ());
+    pq.put((0, 3), ());
+    pq.put((2, 4), ());
+    pq.put((5, 3), ());
+    pq.put((6, 7), ());
+    println!("{:?}", pq.into_sorted_vec());
+}

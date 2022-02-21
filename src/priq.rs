@@ -369,10 +369,15 @@ where
     /// Worst case is ***O(log(n))***.
     pub fn pop(&mut self) -> Option<(S, T)> {
         if self.len > 0 {
+            // TODO fix the algo
             let last_ = self.len - 1;
             // If any of the scores is uncomparable move it to the back
-            if self.len > 1 && self[0].0.partial_cmp(&self[0].0).is_none() {
-                self.swap(0, last_);
+            let mut i = last_;
+            while i > 0 && !self.comparable(&self[i].0, &self[i].0) {
+                i -= 1;
+            }
+            if i != last_ {
+                self.swap(0, i + 1);
             }
 
             unsafe {
@@ -598,7 +603,7 @@ where
     /// # Time
     /// 
     /// This method drains priority queue into vector and sorts in 
-    /// ***O(log(n))*** time.
+    /// ***O(n log(n))*** time.
     pub fn into_sorted_vec(mut self) -> Vec<(S, T)> {
         let mut res: Vec<(S, T)> = self.drain(..)
                                        .collect();
@@ -703,6 +708,11 @@ where
         self.data.cap
     }
 
+    /// Check if two values are comparable
+    fn comparable(&self, lhs: &S, rhs: &S) -> bool {
+        lhs.partial_cmp(rhs).is_some()
+    }
+
     /// Generates the index of a left child (if any) of a item on a given index
     #[inline]
     fn left_child(&self, index: usize) -> usize {
@@ -731,6 +741,14 @@ where
     #[inline]
     fn has_right(&self, index: usize) -> bool {
         self.right_child(index) < self.len
+    }
+
+    #[inline]
+    #[allow(dead_code)]
+    fn push(&mut self, elem: (S, T)) {
+        unsafe {
+            ptr::write(self.ptr().add(self.len), elem);
+        }
     }
 
     /// After item is `pop`-ed this methods helps to balance remaining values
